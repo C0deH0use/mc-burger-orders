@@ -35,8 +35,35 @@ The Kitchen worker must make favorite items if they are missing before picking u
 Collecting customer orders, creates a new order in the system. Is responsible for taking items from stock needed for the order.
 Places orders to kitchen workers when the item is not avaiable on the stock. 
 
+```mermaid
+  flowchart TD
+    A[Customer places order] -->| place order| B(OrderingService)
+    N(Stock Events) --> |item added to stock| B
+
+    subgraph Ordering Service
+        B --> C{is item available at stock} 
+        C -->|Yes| O[assembling order]
+        O --> D{is order completed}         
+    end
+    C -->|No| W[request item to kitchen workers] 
+    D -->|Yes| R[Order ready to collect]
+```
+
 ##### Kitchen Workers service. 
 X number of workers that collect items requests and make them. Pushes ready items to the stock to be picked up by the Ordering service. 
+
+```mermaid
+  flowchart TD
+    A[OrderingService] -->|request item to kitchen workers| Q{{ KitchenQueue }}    
+    subgraph Kitchen Woker
+        W[Worker] --> |make item|I
+        I[In progress] --> W
+        W --> |add to stock| S[(Stock)]
+    end 
+    Q -. pull item .-> W
+
+    W --> | notify on added item| O{{Stock Listners}}
+```
 
 ##### Order Status service
 Returns the Order status for all achtive orders placed in the system.

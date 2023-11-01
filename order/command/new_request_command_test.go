@@ -72,10 +72,11 @@ func Test_CreateNewOrder(t *testing.T) {
 		Repository:     repository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
+		NewOrder:       newOrder,
 	}
 
 	// when
-	order, err := command.Execute(newOrder)
+	order, err := command.Execute()
 
 	// then
 	assert.Nil(t, err)
@@ -132,10 +133,11 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		Repository:     repository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
+		NewOrder:       newOrder,
 	}
 
 	// when
-	order, err := command.Execute(newOrder)
+	order, err := command.Execute()
 
 	// then
 	assert.Nil(t, err)
@@ -178,10 +180,11 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 		Repository:     repository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
+		NewOrder:       newOrder,
 	}
 
 	// when
-	order, err := command.Execute(newOrder)
+	order, err := command.Execute()
 
 	// then
 	assert.Nil(t, err)

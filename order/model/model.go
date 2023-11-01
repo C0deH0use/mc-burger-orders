@@ -6,8 +6,8 @@ import (
 )
 
 type Order struct {
-	ID          int16       `json:"id"`
-	CustomerId  int16       `json:"customerId"`
+	ID          int         `json:"id"`
+	CustomerId  int         `json:"customerId"`
 	Items       []item.Item `json:"items"`
 	PackedItems []item.Item `json:"packedItems"`
 	Status      OrderStatus `json:"status"`

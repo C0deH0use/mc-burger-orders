@@ -14,8 +14,9 @@ func main() {
 			"message": "Hello World!",
 		})
 	})
+	orderEndpoints := order.NewOrderEndpoints()
 
-	order.Endpoints(r)
+	orderEndpoints.Setup(r)
 
 	err := r.Run()
 

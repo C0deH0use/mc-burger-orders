@@ -40,7 +40,12 @@ func (s *StubService) HaveBeenCalledWith(itemName string, quantity int) bool {
 }
 
 func (s *StubService) Create(ctx context.Context, newOrder m.NewOrder) (*m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"newOrder": newOrder})
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"Create": newOrder})
+	return s.o, s.err
+}
+
+func (s *StubService) Update(ctx context.Context, order m.Order) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"Update": order})
 	return s.o, s.err
 }
 
@@ -97,7 +102,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	assert.Equal(t, 1010, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, m.OrderStatus("REQUESTED"), order.Status)
+	assert.Equal(t, m.OrderStatus("READY"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 
@@ -163,7 +168,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1010, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, m.OrderStatus("REQUESTED"), order.Status)
+	assert.Equal(t, m.OrderStatus("IN_PROGRESS"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 

@@ -19,6 +19,7 @@ type FetchManyRepository interface {
 
 type StoreRepository interface {
 	Create(ctx context.Context, newOrder NewOrder) (*Order, error)
+	Update(ctx context.Context, order Order) (*Order, error)
 }
 
 type OrderRepository struct {
@@ -43,6 +44,19 @@ func (r *OrderRepository) Create(ctx context.Context, no NewOrder) (*Order, erro
 	}
 
 	return r.FetchById(ctx, result.InsertedID)
+}
+
+func (r *OrderRepository) Update(ctx context.Context, order Order) (*Order, error) {
+	order.ModifiedAt = time.Now()
+	fmt.Println("Updating existing Order => ", order)
+
+	result, err := r.c.UpdateByID(ctx, order.Id, order)
+	if err != nil {
+		log.Println("Error when updating order in db", err)
+		return nil, err
+	}
+
+	return r.FetchById(ctx, result.UpsertedID)
 }
 
 func (r *OrderRepository) FetchById(ctx context.Context, id interface{}) (*Order, error) {

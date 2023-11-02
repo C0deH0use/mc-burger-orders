@@ -26,7 +26,7 @@ func (c *NewRequestCommand) Execute() (*om.Order, error) {
 		}
 
 		if isReady {
-			order.PackItem(item, item.Quantity)
+			order.PackItem(item.Name, item.Quantity)
 		} else {
 			err = c.handlePreparationItems(item, order)
 			if err != nil {
@@ -35,7 +35,7 @@ func (c *NewRequestCommand) Execute() (*om.Order, error) {
 		}
 	}
 
-	return order, nil
+	return c.Repository.Update(context.TODO(), *order)
 }
 
 func (c *NewRequestCommand) handlePreparationItems(item i.Item, order *om.Order) (err error) {
@@ -60,7 +60,7 @@ func (c *NewRequestCommand) handlePreparationItems(item i.Item, order *om.Order)
 			return err
 		}
 
-		order.PackItem(item, itemTaken)
+		order.PackItem(item.Name, itemTaken)
 	}
 	return nil
 }

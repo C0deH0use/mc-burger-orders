@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
@@ -8,23 +9,25 @@ import (
 	"testing"
 )
 
-type StubKitchenService struct {
-	methodCalled []map[string]any
+type StubService struct {
+	o            *m.Order
+	err          error
+	methodCalled []map[string]interface{}
 }
 
-func (s *StubKitchenService) Request(itemName string, quantity int) {
-	args := map[string]any{
+func (s *StubService) Request(itemName string, quantity int) {
+	args := map[string]interface{}{
 		"itemName": itemName,
 		"quantity": quantity,
 	}
 	s.methodCalled = append(s.methodCalled, args)
 }
 
-func (s *StubKitchenService) CalledCnt() int {
+func (s *StubService) CalledCnt() int {
 	return len(s.methodCalled)
 }
 
-func (s *StubKitchenService) HaveBeenCalledWith(itemName string, quantity int) bool {
+func (s *StubService) HaveBeenCalledWith(itemName string, quantity int) bool {
 	r := false
 
 	for _, args := range s.methodCalled {
@@ -36,9 +39,18 @@ func (s *StubKitchenService) HaveBeenCalledWith(itemName string, quantity int) b
 	return r
 }
 
+func (s *StubService) Create(ctx context.Context, newOrder m.NewOrder) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"Create": newOrder})
+	return s.o, s.err
+}
+
+func (s *StubService) Update(ctx context.Context, order m.Order) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"Update": order})
+	return s.o, s.err
+}
+
 func Test_CreateNewOrder(t *testing.T) {
 	// given
-	repository := m.OrderRepository{}
 	sk := stack.CleanStack()
 	sk["hamburger"] = 3
 
@@ -67,9 +79,16 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &StubKitchenService{}
+	stubKitchenService := &StubService{}
+	stubRepository := &StubService{o: &m.Order{
+		OrderNumber: 1010,
+		CustomerId:  10,
+		Status:      m.Requested,
+		Items:       newOrder.Items,
+		PackedItems: []i.Item{},
+	}}
 	command := &NewRequestCommand{
-		Repository:     repository,
+		Repository:     stubRepository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
 		NewOrder:       newOrder,
@@ -81,9 +100,9 @@ func Test_CreateNewOrder(t *testing.T) {
 	// then
 	assert.Nil(t, err)
 
-	assert.Equal(t, 1010, order.ID)
+	assert.Equal(t, 1010, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, "REQUESTED", order.Status.Value())
+	assert.Equal(t, m.OrderStatus("READY"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 
@@ -99,7 +118,6 @@ func Test_CreateNewOrder(t *testing.T) {
 
 func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	// given
-	repository := m.OrderRepository{}
 	sk := stack.CleanStack()
 	sk["hamburger"] = 1
 
@@ -128,9 +146,16 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &StubKitchenService{}
+	stubKitchenService := &StubService{}
+	stubRepository := &StubService{o: &m.Order{
+		OrderNumber: 1010,
+		CustomerId:  10,
+		Status:      m.Requested,
+		Items:       newOrder.Items,
+		PackedItems: []i.Item{},
+	}}
 	command := &NewRequestCommand{
-		Repository:     repository,
+		Repository:     stubRepository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
 		NewOrder:       newOrder,
@@ -141,9 +166,9 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	// then
 	assert.Nil(t, err)
-	assert.Equal(t, 1010, order.ID)
+	assert.Equal(t, 1010, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, "REQUESTED", order.Status.Value())
+	assert.Equal(t, m.OrderStatus("IN_PROGRESS"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 
@@ -159,7 +184,6 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	// given
-	repository := m.OrderRepository{}
 	s := stack.NewStack(stack.CleanStack())
 	newOrder := m.NewOrder{
 		CustomerId: 10,
@@ -174,10 +198,16 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := &StubKitchenService{}
-
+	stubKitchenService := &StubService{}
+	stubRepository := &StubService{o: &m.Order{
+		OrderNumber: 1010,
+		CustomerId:  10,
+		Status:      m.Requested,
+		Items:       newOrder.Items,
+		PackedItems: []i.Item{},
+	}}
 	command := &NewRequestCommand{
-		Repository:     repository,
+		Repository:     stubRepository,
 		Stack:          s,
 		KitchenService: stubKitchenService,
 		NewOrder:       newOrder,
@@ -188,9 +218,9 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 
 	// then
 	assert.Nil(t, err)
-	assert.Equal(t, 1010, order.ID)
+	assert.Equal(t, 1010, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, "REQUESTED", order.Status.Value())
+	assert.Equal(t, m.OrderStatus("REQUESTED"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 

@@ -6,35 +6,46 @@ import (
 )
 
 type Order struct {
-	ID          int         `json:"id"`
+	Id          int         `json:"_id"`
+	OrderNumber int         `json:"orderNumber"`
 	CustomerId  int         `json:"customerId"`
 	Items       []item.Item `json:"items"`
 	PackedItems []item.Item `json:"packedItems"`
-	Status      OrderStatus `json:"status"`
+	Status      OrderStatus `json:"status" bson:"status"`
 	CreatedAt   time.Time   `json:"createdAt"`
 	ModifiedAt  time.Time   `json:"modifiedAt"`
 }
 
-func (o *Order) PackItem(i item.Item, q int) {
-	o.PackedItems = append(o.PackedItems, item.Item{Name: i.Name, Quantity: q})
+func (o *Order) PackItem(name string, quantity int) {
+	o.PackedItems = append(o.PackedItems, item.Item{Name: name, Quantity: quantity})
+
+	packedItemsCount := o.getItemsCount(o.PackedItems)
+	if packedItemsCount == 0 {
+		return
+	}
+
+	if packedItemsCount < o.getItemsCount(o.Items) {
+		o.Status = InProgress
+	} else {
+		o.Status = Ready
+	}
+}
+
+func (o *Order) getItemsCount(items []item.Item) int {
+	var count = 0
+
+	for _, i := range items {
+		count += i.Quantity
+	}
+
+	return count
 }
 
 const (
-	Requested  = _status("REQUESTED")
-	InProgress = _status("IN_PROGRESS")
-	Ready      = _status("READY")
-	Done       = _status("DONE")
+	Requested  = OrderStatus("REQUESTED")
+	InProgress = OrderStatus("IN_PROGRESS")
+	Ready      = OrderStatus("READY")
+	Done       = OrderStatus("DONE")
 )
 
-type OrderStatus interface {
-	_isStatus()
-	Value() string
-}
-
-type _status string
-
-func (_status) _isStatus() {}
-
-func (_c _status) Value() string {
-	return string(_c)
-}
+type OrderStatus string

@@ -56,7 +56,7 @@ func TestOrderEndpoints(t *testing.T) {
 	mongoContainer = utils.TestWithMongo(t)
 	database = utils.GetMongoDbFrom(mongoContainer)
 
-	t.Run("should return orders", TestFetchOrders)
+	t.Run("should return orders", fetchOrders)
 	t.Run("should store order when request is valid", shouldStoreNewOrder)
 	t.Run("should return BAD REQUEST when request has no items", shouldReturnBadRequestWhenItemsEmpty)
 	t.Run("should return BAD REQUEST when request is missing items", shouldReturnBadRequestWhenNoItems)
@@ -66,7 +66,7 @@ func TestOrderEndpoints(t *testing.T) {
 	})
 }
 
-func TestFetchOrders(t *testing.T) {
+func fetchOrders(t *testing.T) {
 	// given
 	collectionDb := database.Collection("orders")
 	expectedOrders := []interface{}{

@@ -6,11 +6,11 @@ import (
 )
 
 type Order struct {
-	ID          int         `json:"id"`
+	OrderNumber int         `json:"orderNumber"`
 	CustomerId  int         `json:"customerId"`
 	Items       []item.Item `json:"items"`
 	PackedItems []item.Item `json:"packedItems"`
-	Status      OrderStatus `json:"status"`
+	Status      OrderStatus `json:"status" bson:"status"`
 	CreatedAt   time.Time   `json:"createdAt"`
 	ModifiedAt  time.Time   `json:"modifiedAt"`
 }
@@ -20,21 +20,10 @@ func (o *Order) PackItem(i item.Item, q int) {
 }
 
 const (
-	Requested  = _status("REQUESTED")
-	InProgress = _status("IN_PROGRESS")
-	Ready      = _status("READY")
-	Done       = _status("DONE")
+	Requested  = OrderStatus("REQUESTED")
+	InProgress = OrderStatus("IN_PROGRESS")
+	Ready      = OrderStatus("READY")
+	Done       = OrderStatus("DONE")
 )
 
-type OrderStatus interface {
-	_isStatus()
-	Value() string
-}
-
-type _status string
-
-func (_status) _isStatus() {}
-
-func (_c _status) Value() string {
-	return string(_c)
-}
+type OrderStatus string

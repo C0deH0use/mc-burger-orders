@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/testcontainers/testcontainers-go/modules/mongodb"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"mc-burger-orders/item"
 	"mc-burger-orders/middleware"
 	command2 "mc-burger-orders/order/command"
@@ -15,11 +18,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type FakeOrderEndpoints struct {
 	s              *stack.Stack
-	repository     m.OrderRepository
+	repository     *m.OrderRepository
 	queryService   m.OrderQueryService
 	kitchenService service.KitchenRequestService
 	handler        *FakeCommandHandler
@@ -45,12 +49,39 @@ func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {
 	}
 }
 
+var mongoContainer *mongodb.MongoDBContainer
+var database *mongo.Database
+
+func TestOrderEndpoints(t *testing.T) {
+	mongoContainer = utils.TestWithMongo(t)
+	database = utils.GetMongoDbFrom(mongoContainer)
+
+	t.Run("should return orders", TestFetchOrders)
+	t.Run("should store order when request is valid", shouldStoreNewOrder)
+	t.Run("should return BAD REQUEST when request has no items", shouldReturnBadRequestWhenItemsEmpty)
+	t.Run("should return BAD REQUEST when request is missing items", shouldReturnBadRequestWhenNoItems)
+
+	t.Cleanup(func() {
+		utils.TerminateMongo(mongoContainer)
+	})
+}
+
 func TestFetchOrders(t *testing.T) {
 	// given
+	collectionDb := database.Collection("orders")
+	expectedOrders := []interface{}{
+		m.Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		m.Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: m.InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+	}
+	utils.DeleteMany(collectionDb, bson.D{})
+	utils.InsertMany(collectionDb, expectedOrders)
+
+	repository := m.NewRepository(database)
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
-		repository:     m.OrderRepository{},
-		queryService:   m.OrderQueryService{Repository: m.OrderRepository{}},
+		repository:     repository,
+		queryService:   m.OrderQueryService{Repository: repository},
 		kitchenService: &service.KitchenService{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
@@ -75,13 +106,19 @@ func TestFetchOrders(t *testing.T) {
 	assert.Equal(t, 3, len(payload))
 
 	orderOne := payload[0]
-	assert.Equal(t, 1000.0, orderOne["id"])
+	assert.Equal(t, 1000.0, orderOne["orderNumber"])
 	assert.Equal(t, 1.0, orderOne["customerId"])
 	assert.Equal(t, "READY", orderOne["status"])
+
+	defer func() {
+		utils.DeleteMany(collectionDb, bson.D{})
+	}()
 }
 
-func TestNewOrder_StoreOrder(t *testing.T) {
+func shouldStoreNewOrder(t *testing.T) {
 	// given
+	collectionDb := database.Collection("orders")
+
 	order := &map[string]any{
 		"customerId": 10,
 		"items": []interface{}{
@@ -111,9 +148,9 @@ func TestNewOrder_StoreOrder(t *testing.T) {
 		},
 	}
 	expectedOrder := m.Order{
-		ID:         1010,
-		CustomerId: 10,
-		Status:     m.Requested,
+		OrderNumber: 1010,
+		CustomerId:  10,
+		Status:      m.Requested,
 		Items: []item.Item{
 			{
 				Name:     "hamburger",
@@ -124,11 +161,11 @@ func TestNewOrder_StoreOrder(t *testing.T) {
 			},
 		},
 	}
-
+	repository := m.NewRepository(database)
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
-		repository:     m.OrderRepository{},
-		queryService:   m.OrderQueryService{Repository: m.OrderRepository{}},
+		repository:     repository,
+		queryService:   m.OrderQueryService{Repository: repository},
 		kitchenService: &service.KitchenService{},
 		handler:        &FakeCommandHandler{order: expectedOrder},
 	}
@@ -148,16 +185,20 @@ func TestNewOrder_StoreOrder(t *testing.T) {
 		fmt.Println("Error while unmarshalling response payload to map", err)
 	}
 
-	assert.Equal(t, 1010.0, payload["id"])
+	assert.Equal(t, 1010.0, payload["orderNumber"])
 	assert.Equal(t, 10.0, payload["customerId"])
 	assert.Equal(t, "REQUESTED", payload["status"])
 	assert.Equal(t, expectedItems, payload["items"])
 
 	// and
 	assert.True(t, fakeEndpoints.handler.methodCalled)
+
+	defer func() {
+		utils.DeleteMany(collectionDb, bson.D{})
+	}()
 }
 
-func TestNewOrder_ReturnBadRequest_WhenItemsMissing(t *testing.T) {
+func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	// given
 	order := map[string]any{"customerId": 10}
 	bodySlice, _ := json.Marshal(order)
@@ -166,10 +207,11 @@ func TestNewOrder_ReturnBadRequest_WhenItemsMissing(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
+	repository := m.NewRepository(database)
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
-		repository:     m.OrderRepository{},
-		queryService:   m.OrderQueryService{Repository: m.OrderRepository{}},
+		repository:     repository,
+		queryService:   m.OrderQueryService{Repository: repository},
 		kitchenService: &service.KitchenService{},
 		handler:        &FakeCommandHandler{},
 	}
@@ -195,7 +237,7 @@ func TestNewOrder_ReturnBadRequest_WhenItemsMissing(t *testing.T) {
 	assert.False(t, fakeEndpoints.handler.methodCalled)
 }
 
-func TestNewOrder_ReturnBadRequest_WhenItemsEmpty(t *testing.T) {
+func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	// given
 	order := map[string]any{
 		"customerId": 10,
@@ -207,10 +249,11 @@ func TestNewOrder_ReturnBadRequest_WhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
+	repository := m.NewRepository(database)
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
-		repository:     m.OrderRepository{},
-		queryService:   m.OrderQueryService{Repository: m.OrderRepository{}},
+		repository:     repository,
+		queryService:   m.OrderQueryService{Repository: repository},
 		kitchenService: &service.KitchenService{},
 		handler:        &FakeCommandHandler{},
 	}

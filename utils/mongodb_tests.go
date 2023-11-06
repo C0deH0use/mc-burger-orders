@@ -2,8 +2,10 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"testing"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -29,6 +31,7 @@ func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
 		panic(err)
 	}
 
+	log.Print("✅✅✅ Mongo Container: ", endpoint, ": ✅✅✅")
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(endpoint))
 	if err != nil {
 		panic(err)
@@ -49,14 +52,16 @@ func DeleteMany(c *mongo.Collection, filter interface{}) {
 	_, err := c.DeleteMany(context.TODO(), filter)
 
 	if err != nil {
-		panic("Failed to remove records after the test")
+		deleteErr := fmt.Errorf("failed to remove records after the test: %s", err)
+		panic(deleteErr)
 	}
 }
 
 func InsertMany(c *mongo.Collection, records []interface{}) {
 	_, err := c.InsertMany(context.TODO(), records)
 	if err != nil {
-		panic("Failed to insert test orders before the test")
+		insertErr := fmt.Errorf("failed to insert test orders before the test: %s", err)
+		panic(insertErr)
 	}
 
 }

@@ -11,31 +11,41 @@ import (
 )
 
 type NewRequestCommand struct {
-	Repository     om.StoreRepository
+	Repository     om.OrderRepository
 	Stack          *stack.Stack
 	KitchenService service.KitchenRequestService
+	OrderNumber    int64
 	NewOrder       om.NewOrder
 }
 
-func (c *NewRequestCommand) Execute() (*om.Order, error) {
-	order, _ := c.Repository.Create(context.TODO(), c.NewOrder)
+func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
+	order := om.CreateNewOrder(c.OrderNumber, c.NewOrder)
+
 	for _, item := range c.NewOrder.Items {
 		isReady, err := i.IsItemReady(item.Name)
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 
 		if isReady {
 			order.PackItem(item.Name, item.Quantity)
 		} else {
-			err = c.handlePreparationItems(item, order)
+			err = c.handlePreparationItems(item, &order)
 			if err != nil {
-				return nil, err
+				return false, err
 			}
 		}
 	}
 
-	return c.Repository.Update(context.TODO(), *order)
+	result, err := c.Repository.InsertOrUpdate(ctx, order)
+	if err != nil {
+		return false, err
+	}
+	if result == nil {
+		return false, fmt.Errorf("failed to store Order in DB, despite MongoDB Driver returning success")
+	}
+
+	return true, nil
 }
 
 func (c *NewRequestCommand) handlePreparationItems(item i.Item, order *om.Order) (err error) {

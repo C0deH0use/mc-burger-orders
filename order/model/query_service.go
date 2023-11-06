@@ -8,7 +8,8 @@ import (
 )
 
 type OrderQueryService struct {
-	Repository *OrderRepository
+	OrderNumberRepository OrderNumberRepository
+	Repository            FetchManyRepository
 }
 
 func (s *OrderQueryService) FetchOrders(c *gin.Context) {
@@ -22,4 +23,17 @@ func (s *OrderQueryService) FetchOrders(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, orders)
+}
+
+func (s *OrderQueryService) GetNextOrderNumber(c *gin.Context) int64 {
+	orderNumber, err := s.OrderNumberRepository.GetNext(c)
+
+	if err != nil {
+		log.Println("Failure when Next Order Number from db.", err.Error())
+
+		c.JSON(http.StatusInternalServerError, utils.ErrorPayload(err.Error()))
+		return 0
+	}
+
+	return orderNumber
 }

@@ -3,11 +3,17 @@ package main
 import (
 	"github.com/joho/godotenv"
 	"log"
+	"mc-burger-orders/command"
 	"mc-burger-orders/middleware"
 	"net/http"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
+
+var (
+	mongoDb         = middleware.GetMongoClient()
+	executorHandler = &command.DefaultHandler{}
+)
 
 func main() {
 	loadEnv()
@@ -17,9 +23,10 @@ func main() {
 			"message": "Hello World!",
 		})
 	})
-	mongoDb := middleware.GetMongoClient()
 
-	orderEndpoints := order.NewOrderEndpoints(mongoDb)
+	//executorHandler.Register("CreateOrder", []command.Command{orderCommands.NewRequestCommand})
+
+	orderEndpoints := order.NewOrderEndpoints(mongoDb, executorHandler)
 
 	orderEndpoints.Setup(r)
 

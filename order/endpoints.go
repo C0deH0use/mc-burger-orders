@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"mc-burger-orders/command"
 	i "mc-burger-orders/item"
 	"mc-burger-orders/middleware"
 	command2 "mc-burger-orders/order/command"
@@ -17,30 +18,32 @@ import (
 )
 
 type Endpoints struct {
-	stack          *stack.Stack
-	queryService   m.OrderQueryService
-	repository     *m.OrderRepository
-	kitchenService service.KitchenRequestService
-	commandHandler command2.CommandHandler
+	stack           *stack.Stack
+	queryService    m.OrderQueryService
+	orderRepository m.OrderRepository
+	kitchenService  service.KitchenRequestService
+	commandHandler  command.ExecutionHandler
 }
 
-func NewOrderEndpoints(database *mongo.Database) middleware.EndpointsSetup {
+func NewOrderEndpoints(database *mongo.Database, executorHandler command.ExecutionHandler) middleware.EndpointsSetup {
 	s := stack.NewStack(stack.CleanStack())
 	repository := m.NewRepository(database)
-	queryService := m.OrderQueryService{Repository: repository}
+	orderNumberRepository := m.NewOrderNumberRepository(database)
+	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := &service.KitchenService{}
-	handler := &command2.DefaultHandler{}
+	handler := executorHandler
 
 	return &Endpoints{
-		stack: s, queryService: queryService, repository: repository, kitchenService: kitchenService, commandHandler: handler,
+		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, commandHandler: handler,
 	}
 }
 
-func (e *Endpoints) CreateNewOrderCommand(order m.NewOrder) command2.Command {
+func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order m.NewOrder) command.Command {
 	return &command2.NewRequestCommand{
 		Stack:          e.stack,
-		Repository:     e.repository,
+		Repository:     e.orderRepository,
 		KitchenService: e.kitchenService,
+		OrderNumber:    orderNumber,
 		NewOrder:       order,
 	}
 }
@@ -66,16 +69,20 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 		return
 	}
 
-	command := e.CreateNewOrderCommand(newOrder)
-	order, err := e.commandHandler.Execute(command)
+	orderNumber := e.queryService.GetNextOrderNumber(c)
+	result, err := e.commandHandler.Execute(e.CreateNewOrderCommand(orderNumber, newOrder))
 
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload(err.Error()))
 		return
 	}
+	if !result {
+		c.JSON(http.StatusBadRequest, utils.ErrorPayload("Failed to Create new order"))
+		return
+	}
 
-	c.JSON(http.StatusCreated, order)
+	c.JSON(http.StatusCreated, map[string]int64{"orderNumber": orderNumber})
 }
 
 func validate(c m.NewOrder) error {

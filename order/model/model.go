@@ -1,19 +1,25 @@
 package model
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"mc-burger-orders/item"
 	"time"
 )
 
 type Order struct {
-	Id          int         `json:"_id"`
-	OrderNumber int         `json:"orderNumber"`
-	CustomerId  int         `json:"customerId"`
-	Items       []item.Item `json:"items"`
-	PackedItems []item.Item `json:"packedItems"`
-	Status      OrderStatus `json:"status" bson:"status"`
-	CreatedAt   time.Time   `json:"createdAt"`
-	ModifiedAt  time.Time   `json:"modifiedAt"`
+	Id          *primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	OrderNumber int64               `json:"orderNumber" bson:"orderNumber"`
+	CustomerId  int                 `json:"customerId" bson:"customerId"`
+	Items       []item.Item         `json:"items" bson:"items"`
+	PackedItems []item.Item         `json:"packedItems" bson:"packedItems"`
+	Status      OrderStatus         `json:"status" bson:"status" bson:"status"`
+	CreatedAt   time.Time           `json:"createdAt" bson:"createdAt"`
+	ModifiedAt  time.Time           `json:"modifiedAt" bson:"modifiedAt"`
+}
+
+func CreateNewOrder(number int64, order NewOrder) Order {
+	objectID := primitive.NewObjectID()
+	return Order{Id: &objectID, OrderNumber: number, CustomerId: order.CustomerId, Items: order.Items, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()}
 }
 
 func (o *Order) PackItem(name string, quantity int) {

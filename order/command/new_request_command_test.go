@@ -45,6 +45,15 @@ func (s *StubService) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Ord
 	return s.o, s.err
 }
 
+func (s *StubService) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchById": id})
+	return s.o, nil
+}
+func (s *StubService) FetchMany(ctx context.Context) ([]m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
+	return []m.Order{*s.o}, nil
+}
+
 func (s *StubService) GetOrderArgs() []m.Order {
 	var u []m.Order
 

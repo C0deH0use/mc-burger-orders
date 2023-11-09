@@ -121,9 +121,11 @@ func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, q
 		return err
 	}
 
+	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 	log.Info.Println("Sending message with value", string(msgValue))
 	msg := kafka.Message{
 		Headers: headers,
+		Key:     msgKey,
 		Value:   msgValue,
 	}
 	err = s.sendMessage(ctx, msg)

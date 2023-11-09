@@ -55,7 +55,7 @@ func TestOrderHttpEndpoints(t *testing.T) {
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
 		utils.TerminateMongo(mongoContainer)
-		//utils.TerminateKafka(kafkaContainer)
+		utils.TerminateKafka(kafkaContainer)
 	})
 }
 
@@ -135,7 +135,7 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 			Quantity: 1,
 		},
 	}
-	expectedMessages := make([]*s.KitchenRequestMessage, 1)
+	expectedMessages := make([]*s.KitchenRequestMessage, 0)
 	expectedMessages = append(expectedMessages, s.NewKitchenRequestMessage("hamburger", 2))
 	expectedMessages = append(expectedMessages, s.NewKitchenRequestMessage("cheeseburger", 1))
 
@@ -193,7 +193,7 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 	assert.Equal(t, item.Item{Name: "ice-cream", Quantity: 1}, actualOrder.PackedItems[0])
 
 	// and
-	receivedMessages := make([]kafka.Message, 10)
+	receivedMessages := make([]kafka.Message, 0)
 	retries := 2
 	for i := 0; i < retries; i++ {
 		message, err := testReader.ReadMessage(context.Background())
@@ -202,11 +202,13 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 			log.Print(t, "failed reading message on test Topic", err)
 			break
 		}
-		receivedMessages = append(receivedMessages, message)
+		if message.Key != nil {
+			receivedMessages = append(receivedMessages, message)
+		}
 	}
 
 	// and
-	actualMessages := make([]*s.KitchenRequestMessage, 10)
+	actualMessages := make([]*s.KitchenRequestMessage, 0)
 
 	for _, message := range receivedMessages {
 		actualMessage := &s.KitchenRequestMessage{}
@@ -217,6 +219,7 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 		actualMessages = append(actualMessages, actualMessage)
 	}
 
+	assert.Equal(t, len(expectedMessages), len(actualMessages))
 	assert.Equal(t, expectedMessages, actualMessages)
 
 	defer func() {

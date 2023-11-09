@@ -3,17 +3,16 @@ package utils
 import (
 	"context"
 	"fmt"
+	kafkago "github.com/segmentio/kafka-go"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/kafka"
+	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-	"testing"
-
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 )
 
-func TestWithMongo(t *testing.T) *mongodb.MongoDBContainer {
-	ctx := context.Background()
+func TestWithMongo(ctx context.Context) *mongodb.MongoDBContainer {
 	mongodbContainer, err := mongodb.RunContainer(ctx,
 		testcontainers.WithImage("mongo:6"),
 	)
@@ -22,6 +21,16 @@ func TestWithMongo(t *testing.T) *mongodb.MongoDBContainer {
 	}
 
 	return mongodbContainer
+}
+
+func TestWithKafka(ctx context.Context) *kafka.KafkaContainer {
+	kafkaContainer, err := kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
+
+	if err != nil {
+		panic(err)
+	}
+
+	return kafkaContainer
 }
 
 func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
@@ -45,6 +54,21 @@ func TerminateMongo(mongodbContainer *mongodb.MongoDBContainer) {
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {
 		panic(err)
+	}
+}
+
+func TerminateKafka(kafkaContainer *kafka.KafkaContainer) {
+	ctx := context.Background()
+
+	if err := kafkaContainer.Terminate(ctx); err != nil {
+		panic(err)
+	}
+}
+
+func TerminateKafkaReader(testReader *kafkago.Reader) {
+	err := testReader.Close()
+	if err != nil {
+		panic("failure when closing test reader")
 	}
 }
 

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"mc-burger-orders/command"
 	i "mc-burger-orders/item"
+	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
 	command2 "mc-burger-orders/order/command"
 	m "mc-burger-orders/order/model"
@@ -25,12 +25,12 @@ type Endpoints struct {
 	commandHandler  command.ExecutionHandler
 }
 
-func NewOrderEndpoints(database *mongo.Database, executorHandler command.ExecutionHandler) middleware.EndpointsSetup {
+func NewOrderEndpoints(database *mongo.Database, kitchenConfigs service.KitchenServiceConfigs, executorHandler command.ExecutionHandler) middleware.EndpointsSetup {
 	s := stack.NewStack(stack.CleanStack())
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
-	kitchenService := &service.KitchenService{}
+	kitchenService := service.NewKitchenServiceFrom(kitchenConfigs)
 	handler := executorHandler
 
 	return &Endpoints{
@@ -58,13 +58,13 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	err := c.ShouldBindJSON(&newOrder)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Schema Error. %s", err)
-		log.Println("New Order request Error: ", errorMessage)
+		log.Info.Println("New Order request Error: ", errorMessage)
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload(errorMessage))
 		return
 	}
 	err = validate(newOrder)
 	if err != nil {
-		log.Println(err)
+		log.Error.Println(err)
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload(err.Error()))
 		return
 	}
@@ -73,7 +73,7 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	result, err := e.commandHandler.Execute(e.CreateNewOrderCommand(orderNumber, newOrder))
 
 	if err != nil {
-		log.Println(err)
+		log.Error.Println(err)
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload(err.Error()))
 		return
 	}

@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"mc-burger-orders/command"
 	"mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
+	s "mc-burger-orders/order/service"
 	"mc-burger-orders/utils"
 	"net/http"
 	"net/http/httptest"
@@ -24,19 +27,35 @@ var (
 	database                *mongo.Database
 	collectionDb            *mongo.Collection
 	orderNumberCollectionDb *mongo.Collection
+	kafkaConfig             s.KitchenServiceConfigs
+	testReader              *kafka.Reader
+	topic                   = "test-kitchen-requests"
 )
 
 func TestOrderHttpEndpoints(t *testing.T) {
-	mongoContainer = utils.TestWithMongo(t)
+	ctx := context.Background()
+	mongoContainer = utils.TestWithMongo(ctx)
+	kafkaContainer := utils.TestWithKafka(ctx)
+	brokers, err := kafkaContainer.Brokers(ctx)
+	if err != nil {
+		assert.Fail(t, "cannot read Brokers from kafka container")
+	}
+	kafkaConfig = s.KitchenServiceConfigs{
+		Topic:             topic,
+		Brokers:           brokers,
+		NumPartitions:     1,
+		ReplicationFactor: 1,
+	}
 	database = utils.GetMongoDbFrom(mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
-
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
 	t.Run("should store order when request is valid", shouldExecuteCommandAndStoreNewOrderWhenRequested)
 
 	t.Cleanup(func() {
+		log.Println("Running Clean UP code")
 		utils.TerminateMongo(mongoContainer)
+		utils.TerminateKafka(kafkaContainer)
 	})
 }
 
@@ -50,7 +69,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(collectionDb, bson.D{})
 	utils.InsertMany(collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, &command.DefaultHandler{})
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -92,6 +111,10 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 				"quantity": 2,
 			},
 			map[string]any{
+				"name":     "cheeseburger",
+				"quantity": 1,
+			},
+			map[string]any{
 				"name":     "ice-cream",
 				"quantity": 1,
 			},
@@ -102,11 +125,19 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 		{
 			Name:     "hamburger",
 			Quantity: 2,
-		}, {
+		},
+		{
+			Name:     "cheeseburger",
+			Quantity: 1,
+		},
+		{
 			Name:     "ice-cream",
 			Quantity: 1,
 		},
 	}
+	expectedMessages := make([]*s.KitchenRequestMessage, 0)
+	expectedMessages = append(expectedMessages, s.NewKitchenRequestMessage("hamburger", 2))
+	expectedMessages = append(expectedMessages, s.NewKitchenRequestMessage("cheeseburger", 1))
 
 	bodySlice, _ := json.Marshal(order)
 	reqBody := bytes.NewBuffer(bodySlice)
@@ -116,8 +147,16 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 
 	repository := m.NewRepository(database)
 
-	endpoints := NewOrderEndpoints(database, &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, &command.DefaultHandler{})
 	engine := utils.SetUpRouter(endpoints.Setup)
+
+	testReader = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:   kafkaConfig.Brokers,
+		Topic:     topic,
+		Partition: 0,
+		MinBytes:  10e3, // 10KB
+		MaxBytes:  10e6, // 10MB
+	})
 
 	// when
 	engine.ServeHTTP(resp, req)
@@ -153,7 +192,38 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 	assert.Len(t, actualOrder.PackedItems, 1)
 	assert.Equal(t, item.Item{Name: "ice-cream", Quantity: 1}, actualOrder.PackedItems[0])
 
+	// and
+	receivedMessages := make([]kafka.Message, 0)
+	retries := 2
+	for i := 0; i < retries; i++ {
+		message, err := testReader.ReadMessage(context.Background())
+
+		if err != nil {
+			log.Print(t, "failed reading message on test Topic", err)
+			break
+		}
+		if message.Key != nil {
+			receivedMessages = append(receivedMessages, message)
+		}
+	}
+
+	// and
+	actualMessages := make([]*s.KitchenRequestMessage, 0)
+
+	for _, message := range receivedMessages {
+		actualMessage := &s.KitchenRequestMessage{}
+		err = json.Unmarshal(message.Value, actualMessage)
+		if err != nil {
+			assert.Fail(t, "failed to unmarshal message on test Topic", err)
+		}
+		actualMessages = append(actualMessages, actualMessage)
+	}
+
+	assert.Equal(t, len(expectedMessages), len(actualMessages))
+	assert.Equal(t, expectedMessages, actualMessages)
+
 	defer func() {
+		utils.TerminateKafkaReader(testReader)
 		utils.DeleteMany(collectionDb, bson.D{})
 		utils.DeleteMany(orderNumberCollectionDb, bson.D{})
 	}()

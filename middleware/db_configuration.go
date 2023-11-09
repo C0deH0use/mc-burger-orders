@@ -4,27 +4,35 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"mc-burger-orders/log"
 	"os"
 )
 
 func GetMongoClient() *mongo.Database {
-	u := os.Getenv("DB_MONGO_URL")
-	if len(u) == 0 {
-		panic("MONGO DB URL is missing!")
+	url := os.Getenv("DB_MONGO_URL")
+	if len(url) == 0 {
+		log.Error.Fatalln("MONGO DB URL is missing!")
 	}
 	db, exists := os.LookupEnv("DB_MONGO_NAME")
 	if !exists {
-		log.Println("DB_MONGO_NAME is empty, running the default")
+		log.Error.Println("DB_MONGO_NAME is empty, running the default")
 		db = "order-db"
 	}
+	user := os.Getenv("DB_MONGO_USER")
+	password := os.Getenv("DB_MONGO_PASSWORD")
 
+	auth := options.Credential{
+		AuthMechanism: "SCRAM-SHA-256",
+		AuthSource:    "admin",
+		Username:      user,
+		Password:      password,
+	}
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(u).SetServerAPIOptions(serverAPI)
+	opts := options.Client().ApplyURI(url).SetAuth(auth).SetServerAPIOptions(serverAPI)
 
-	client, err := mongo.Connect(context.TODO(), opts)
+	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
-		panic(err)
+		log.Error.Fatalln(err)
 	}
 
 	database := client.Database(db)

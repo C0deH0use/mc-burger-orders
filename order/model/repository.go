@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -39,7 +38,7 @@ func NewRepository(database *mongo.Database) *OrderRepositoryImpl {
 
 func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
 	order.ModifiedAt = time.Now()
-	fmt.Println("Updating existing Order => ", order)
+	log.Println("Updating existing Order => ", order)
 	filterDef := bson.D{{"orderNumber", order.OrderNumber}}
 	updateDef := bson.D{{"$set", order}}
 	upsertOption := true

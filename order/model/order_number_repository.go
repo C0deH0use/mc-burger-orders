@@ -2,11 +2,10 @@ package model
 
 import (
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"mc-burger-orders/log"
 )
 
 func NewOrderNumberRepository(database *mongo.Database) *OrderNumberRepositoryImpl {
@@ -27,7 +26,7 @@ type FetchNextOrderNumberRepository interface {
 }
 
 func (r *OrderNumberRepositoryImpl) GetNext(ctx context.Context) (int64, error) {
-	fmt.Println("Get next order number")
+	log.Info.Println("Get next order number")
 	limit := int64(1)
 	sortDef := map[string]int{
 		"number": 1,
@@ -39,21 +38,21 @@ func (r *OrderNumberRepositoryImpl) GetNext(ctx context.Context) (int64, error) 
 	}
 	cursor, err := r.c.Find(ctx, bson.D{}, opts)
 	if err != nil {
-		log.Println("Error when fetching current latest order number from db", err)
+		log.Error.Println("Error when fetching current latest order number from db", err)
 		return -1, err
 	}
 	var numbers []OrderNumber
 	if err = cursor.All(ctx, &numbers); err != nil {
-		log.Println("Error reading cursor data", err)
+		log.Error.Println("Error reading cursor data", err)
 		return -1, err
 	}
 	nextOrderNumber, err := r.getAndPersistNext(ctx, numbers)
 	if err != nil {
-		log.Println("Error Determining the next order number", err)
+		log.Error.Println("Error Determining the next order number", err)
 		return -1, err
 	}
 
-	log.Println("Next Order Number is", nextOrderNumber)
+	log.Info.Println("Next Order Number is", nextOrderNumber)
 	return nextOrderNumber, nil
 }
 
@@ -61,17 +60,17 @@ func (r *OrderNumberRepositoryImpl) getAndPersistNext(ctx context.Context, numbe
 	var latestNumber = NewOrderNumber(1)
 	if len(numbers) > 0 {
 		lastNumber := numbers[0].Number
-		log.Println("Last Order number", latestNumber)
+		log.Info.Println("Last Order number", latestNumber)
 
 		latestNumber = NewOrderNumber(lastNumber + 1)
 	}
 
 	_, err := r.c.InsertOne(ctx, latestNumber)
 	if err != nil {
-		log.Println("Error Persisting next order number", err)
+		log.Error.Println("Error Persisting next order number", err)
 		return -1, err
 	}
-	log.Println("Next order number persisted")
+	log.Info.Println("Next order number persisted")
 
 	return latestNumber.Number, nil
 }

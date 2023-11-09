@@ -23,10 +23,15 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 	kafkaContainer := utils.TestWithKafka(ctx)
 	brokers, err := kafkaContainer.Brokers(ctx)
 	if err != nil {
-		assert.Fail(t, "cannot read brokers from kafka container")
+		assert.Fail(t, "cannot read Brokers from kafka container")
 	}
-
-	sut = NewKitchenServiceFrom(brokers, topic)
+	kafkaConfig := KitchenServiceConfigs{
+		Topic:             topic,
+		Brokers:           brokers,
+		NumPartitions:     1,
+		ReplicationFactor: 1,
+	}
+	sut, _ = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   brokers,
 		Topic:     topic,
@@ -42,9 +47,7 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 
 	// Clean up the container after
 	defer func() {
-		if err := kafkaContainer.Terminate(ctx); err != nil {
-			panic(err)
-		}
+		utils.TerminateKafka(kafkaContainer)
 	}()
 }
 
@@ -66,7 +69,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	message, err := testReader.ReadMessage(context.Background())
 
 	if err != nil {
-		assert.Fail(t, "failed reading message on test topic", err)
+		assert.Fail(t, "failed reading message on test Topic", err)
 	}
 
 	// and
@@ -77,7 +80,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	actualMessage := &KitchenRequestMessage{}
 	err = json.Unmarshal(message.Value, actualMessage)
 	if err != nil {
-		assert.Fail(t, "failed to unmarshal message on test topic", err)
+		assert.Fail(t, "failed to unmarshal message on test Topic", err)
 	}
 	assert.Equal(t, expectedMessage, actualMessage)
 }

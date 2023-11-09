@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"fmt"
+	"mc-burger-orders/log"
 )
 
 type Command interface {
@@ -27,25 +27,15 @@ func (r *DefaultHandler) Register(event string, commands ...Command) {
 }
 
 func (r *DefaultHandler) Execute(c Command) (bool, error) {
-	fmt.Println("About to execute following command", c)
-
-	// run command as coroutine
-	//commandResults := make(chan []bool)
-	//go func() {
-	//	result, err := c.Execute(context.Background())
-	//	if err != nil {
-	//		fmt.Println("While executing command", c, "following error occurred", err.Error())
-	//	}
-	//	result >> commandResults
-	//}()
+	log.Info.Println("About to execute following command", c)
 
 	result, err := c.Execute(context.Background())
 	if err != nil {
-		fmt.Println("While executing command", c, "following error occurred", err.Error())
+		log.Error.Println("While executing command", c, "following error occurred", err.Error())
 		return false, err
 	}
 
-	fmt.Println("Command finished successfully")
+	log.Info.Println("Command finished successfully")
 	return result, nil
 
 }

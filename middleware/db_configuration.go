@@ -4,18 +4,18 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"mc-burger-orders/log"
 	"os"
 )
 
 func GetMongoClient() *mongo.Database {
 	url := os.Getenv("DB_MONGO_URL")
 	if len(url) == 0 {
-		panic("MONGO DB URL is missing!")
+		log.Error.Fatalln("MONGO DB URL is missing!")
 	}
 	db, exists := os.LookupEnv("DB_MONGO_NAME")
 	if !exists {
-		log.Println("DB_MONGO_NAME is empty, running the default")
+		log.Error.Println("DB_MONGO_NAME is empty, running the default")
 		db = "order-db"
 	}
 	user := os.Getenv("DB_MONGO_USER")
@@ -32,7 +32,7 @@ func GetMongoClient() *mongo.Database {
 
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
-		panic(err)
+		log.Error.Fatalln(err)
 	}
 
 	database := client.Database(db)

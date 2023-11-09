@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,7 +26,7 @@ type FetchNextOrderNumberRepository interface {
 }
 
 func (r *OrderNumberRepositoryImpl) GetNext(ctx context.Context) (int64, error) {
-	fmt.Println("Get next order number")
+	log.Println("Get next order number")
 	limit := int64(1)
 	sortDef := map[string]int{
 		"number": 1,

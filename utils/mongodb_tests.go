@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	kafkago "github.com/segmentio/kafka-go"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/kafka"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
@@ -53,6 +54,21 @@ func TerminateMongo(mongodbContainer *mongodb.MongoDBContainer) {
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {
 		panic(err)
+	}
+}
+
+func TerminateKafka(kafkaContainer *kafka.KafkaContainer) {
+	ctx := context.Background()
+
+	if err := kafkaContainer.Terminate(ctx); err != nil {
+		panic(err)
+	}
+}
+
+func TerminateKafkaReader(testReader *kafkago.Reader) {
+	err := testReader.Close()
+	if err != nil {
+		panic("failure when closing test reader")
 	}
 }
 

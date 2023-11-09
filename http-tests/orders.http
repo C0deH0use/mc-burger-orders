@@ -1,1 +1,23 @@
-GET localhost:8080/order
+GET localhost:9090/order
+
+###
+PUT localhost:9090/order
+Content-Type: application/json
+
+{
+  "customerId": 1012,
+  "items": [
+    {
+      "name": "hamburger",
+      "quantity": 2
+    },
+    {
+      "name": "cheeseburger",
+      "quantity": 2
+    },
+    {
+      "name": "ice-cream",
+      "quantity": 2
+    }
+  ]
+}

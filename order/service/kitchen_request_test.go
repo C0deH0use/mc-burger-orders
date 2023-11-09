@@ -1,0 +1,83 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/assert"
+	"mc-burger-orders/utils"
+	"strconv"
+	"testing"
+	"time"
+)
+
+var (
+	sut        *KitchenService
+	ctx        context.Context
+	testReader *kafka.Reader
+	topic      = "test-kitchen-requests"
+)
+
+func TestKitchenService_RequestForOrder(t *testing.T) {
+	ctx = context.Background()
+	kafkaContainer := utils.TestWithKafka(ctx)
+	brokers, err := kafkaContainer.Brokers(ctx)
+	if err != nil {
+		assert.Fail(t, "cannot read brokers from kafka container")
+	}
+
+	sut = NewKitchenServiceFrom(brokers, topic)
+	testReader = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:   brokers,
+		Topic:     topic,
+		Partition: 0,
+		MinBytes:  10e3, // 10KB
+		MaxBytes:  10e6, // 10MB
+		MaxWait:   time.Millisecond * 10,
+	})
+
+	t.Run("Run KitchenService Tests", func(t *testing.T) {
+		t.Run("should correctly send new request to the kitchen", shouldSendNewMessageToTopic)
+	})
+
+	// Clean up the container after
+	defer func() {
+		if err := kafkaContainer.Terminate(ctx); err != nil {
+			panic(err)
+		}
+	}()
+}
+
+func shouldSendNewMessageToTopic(t *testing.T) {
+	// given
+	itemName := "hamburger"
+	quantity := 2
+	orderNumber := int64(122)
+
+	// when
+	err := sut.RequestForOrder(ctx, itemName, quantity, orderNumber)
+
+	// then
+	assert.Nil(t, err)
+
+	// and
+	expectedHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
+	expectedMessage := NewKitchenRequestMessage(itemName, quantity)
+	message, err := testReader.ReadMessage(context.Background())
+
+	if err != nil {
+		assert.Fail(t, "failed reading message on test topic", err)
+	}
+
+	// and
+	assert.Equal(t, topic, message.Topic)
+	assert.Len(t, message.Headers, 1)
+	assert.Equal(t, expectedHeader, message.Headers[0])
+
+	actualMessage := &KitchenRequestMessage{}
+	err = json.Unmarshal(message.Value, actualMessage)
+	if err != nil {
+		assert.Fail(t, "failed to unmarshal message on test topic", err)
+	}
+	assert.Equal(t, expectedMessage, actualMessage)
+}

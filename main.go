@@ -10,14 +10,18 @@ import (
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
 
-var (
-	mongoDb         = middleware.GetMongoClient()
-	executorHandler = &command.DefaultHandler{}
-)
-
 func main() {
 	loadEnv()
-	r := gin.New()
+	mongoDb := middleware.GetMongoClient()
+	executorHandler := &command.DefaultHandler{}
+
+	r := gin.Default()
+	r.ForwardedByClientIP = true
+	err := r.SetTrustedProxies([]string{"127.0.0.1"})
+	if err != nil {
+		log.Panicf("error when setting trusted proxies. Reason: %s", err)
+	}
+
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Hello World!",
@@ -30,10 +34,10 @@ func main() {
 
 	orderEndpoints.Setup(r)
 
-	err := r.Run()
+	err = r.Run()
 
 	if err != nil {
-		log.Println("Error when starting REST Service", err)
+		log.Panicf("error when starting REST service. Reason: %s", err)
 	}
 }
 

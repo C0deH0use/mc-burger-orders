@@ -27,7 +27,8 @@ var (
 )
 
 func TestOrderHttpEndpoints(t *testing.T) {
-	mongoContainer = utils.TestWithMongo(t)
+	ctx := context.Background()
+	mongoContainer = utils.TestWithMongo(ctx)
 	database = utils.GetMongoDbFrom(mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")

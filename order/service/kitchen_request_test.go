@@ -31,7 +31,7 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 		NumPartitions:     1,
 		ReplicationFactor: 1,
 	}
-	sut, _ = NewKitchenServiceFrom(kafkaConfig)
+	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   brokers,
 		Topic:     topic,

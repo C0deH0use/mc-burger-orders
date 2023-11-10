@@ -15,6 +15,7 @@ import (
 	"mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
 	s "mc-burger-orders/order/service"
+	"mc-burger-orders/stack"
 	"mc-burger-orders/utils"
 	"net/http"
 	"net/http/httptest"
@@ -69,7 +70,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(collectionDb, bson.D{})
 	utils.InsertMany(collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()), &command.DefaultHandler{})
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -147,7 +148,7 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 
 	repository := m.NewRepository(database)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()), &command.DefaultHandler{})
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	testReader = kafka.NewReader(kafka.ReaderConfig{

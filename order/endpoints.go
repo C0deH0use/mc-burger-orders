@@ -22,16 +22,15 @@ type Endpoints struct {
 	queryService    m.OrderQueryService
 	orderRepository m.OrderRepository
 	kitchenService  service.KitchenRequestService
-	commandHandler  command.ExecutionHandler
+	commandHandler  command.Dishpatcher
 }
 
-func NewOrderEndpoints(database *mongo.Database, kitchenConfigs service.KitchenServiceConfigs, executorHandler command.ExecutionHandler) middleware.EndpointsSetup {
-	s := stack.NewStack(stack.CleanStack())
+func NewOrderEndpoints(database *mongo.Database, kitchenConfigs service.KitchenServiceConfigs, s *stack.Stack) middleware.EndpointsSetup {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := service.NewKitchenServiceFrom(kitchenConfigs)
-	handler := executorHandler
+	handler := &command.DefaultHandler{}
 
 	return &Endpoints{
 		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, commandHandler: handler,
@@ -70,7 +69,8 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	}
 
 	orderNumber := e.queryService.GetNextOrderNumber(c)
-	result, err := e.commandHandler.Execute(e.CreateNewOrderCommand(orderNumber, newOrder))
+	cmd := e.CreateNewOrderCommand(orderNumber, newOrder)
+	result, err := e.commandHandler.Execute(cmd)
 
 	if err != nil {
 		log.Error.Println(err)

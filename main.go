@@ -2,20 +2,24 @@ package main
 
 import (
 	"github.com/joho/godotenv"
-	"mc-burger-orders/command"
+	"mc-burger-orders/event"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
 	"mc-burger-orders/order/service"
+	"mc-burger-orders/stack"
 	"net/http"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
 
 func main() {
+	loadEnv()
 	mongoDb := middleware.GetMongoClient()
-	executorHandler := &command.DefaultHandler{}
+	kitchenStack := stack.NewStack(stack.CleanStack())
 	kitchenServiceConfigs := service.KitchenServiceConfigsFromEnv()
+	eventBus := event.NewInternalEventBus()
 
+	orderEventHandler := order.NewOrderEventHandler(mongoDb, kitchenServiceConfigs, kitchenStack)
 	r := gin.Default()
 	r.ForwardedByClientIP = true
 	err := r.SetTrustedProxies([]string{"127.0.0.1"})
@@ -29,9 +33,9 @@ func main() {
 		})
 	})
 
-	//executorHandler.Register("CreateOrder", []command.Command{orderCommands.NewRequestCommand})
+	eventBus.AddHandler(orderEventHandler, stack.ItemAddedToStackEvent, order.CollectedEvent)
 
-	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenServiceConfigs, executorHandler)
+	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenServiceConfigs, kitchenStack)
 
 	orderEndpoints.Setup(r)
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
-	"mc-burger-orders/command"
+	"math/rand"
+	"mc-burger-orders/event"
 	"mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
 	s "mc-burger-orders/order/service"
@@ -28,9 +30,9 @@ var (
 	database                *mongo.Database
 	collectionDb            *mongo.Collection
 	orderNumberCollectionDb *mongo.Collection
-	kafkaConfig             s.KitchenServiceConfigs
+	kafkaConfig             *event.TopicConfigs
 	testReader              *kafka.Reader
-	topic                   = "test-kitchen-requests"
+	topic                   = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
 func TestOrderHttpEndpoints(t *testing.T) {
@@ -41,17 +43,18 @@ func TestOrderHttpEndpoints(t *testing.T) {
 	if err != nil {
 		assert.Fail(t, "cannot read Brokers from kafka container")
 	}
-	kafkaConfig = s.KitchenServiceConfigs{
+	kafkaConfig = &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
 		NumPartitions:     1,
 		ReplicationFactor: 1,
+		AutoCreateTopic:   true,
 	}
 	database = utils.GetMongoDbFrom(mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
-	t.Run("should store order when request is valid", shouldExecuteCommandAndStoreNewOrderWhenRequested)
+	t.Run("should store and begin packing order when received valid request", shouldBeginPackingAndStoreOrderWhenRequested)
 
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
@@ -70,7 +73,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(collectionDb, bson.D{})
 	utils.InsertMany(collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()), &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -102,7 +105,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	}()
 }
 
-func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
+func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	// given
 	order := &map[string]any{
 		"customerId": 10,
@@ -148,7 +151,7 @@ func shouldExecuteCommandAndStoreNewOrderWhenRequested(t *testing.T) {
 
 	repository := m.NewRepository(database)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()), &command.DefaultHandler{})
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	testReader = kafka.NewReader(kafka.ReaderConfig{

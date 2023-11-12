@@ -16,23 +16,28 @@ type StubService struct {
 	methodCalled []map[string]interface{}
 }
 
-func (s *StubService) Request(itemName string, quantity int) {
+func (s *StubService) RequestForOrder(ctx context.Context, itemName string, quantity int, orderNumber int64) error {
 	args := map[string]interface{}{
-		"itemName": itemName,
-		"quantity": quantity,
+		"itemName":    itemName,
+		"quantity":    quantity,
+		"orderNumber": orderNumber,
 	}
 	s.methodCalled = append(s.methodCalled, args)
+	return nil
 }
 
 func (s *StubService) CalledCnt() int {
 	return len(s.methodCalled)
 }
 
-func (s *StubService) HaveBeenCalledWith(itemName string, quantity int) bool {
+func (s *StubService) HaveBeenCalledWith(itemName string, quantity int, orderNumber int64) bool {
 	r := false
 
 	for _, args := range s.methodCalled {
-		if args["itemName"] == itemName && args["quantity"] == quantity {
+		argName := args["itemName"]
+		argQuantity := args["quantity"]
+		argNumber := args["orderNumber"]
+		if argName == itemName && argQuantity == quantity && argNumber == orderNumber {
 			r = true
 		}
 	}
@@ -220,7 +225,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 2), "Kitchen Service called with Hamburger requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 1, expectedOrderNumber), "Kitchen Service called with Hamburger requests")
 }
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
@@ -280,6 +285,6 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 2), "Kitchen Service called with Hamburger requests")
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("fries", 1), "Kitchen Service called with Fries requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 2, expectedOrderNumber), "Kitchen Service called with Hamburger requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith("fries", 1, expectedOrderNumber), "Kitchen Service called with Fries requests")
 }

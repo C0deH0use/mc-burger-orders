@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"mc-burger-orders/command"
+	"mc-burger-orders/event"
 	i "mc-burger-orders/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
@@ -22,15 +23,15 @@ type Endpoints struct {
 	queryService    m.OrderQueryService
 	orderRepository m.OrderRepository
 	kitchenService  service.KitchenRequestService
-	commandHandler  command.Dishpatcher
+	commandHandler  command.Dispatcher
 }
 
-func NewOrderEndpoints(database *mongo.Database, kitchenConfigs service.KitchenServiceConfigs, s *stack.Stack) middleware.EndpointsSetup {
+func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
-	kitchenService := service.NewKitchenServiceFrom(kitchenConfigs)
-	handler := &command.DefaultHandler{}
+	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
+	handler := &command.DefaultDispatcher{}
 
 	return &Endpoints{
 		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, commandHandler: handler,

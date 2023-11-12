@@ -21,6 +21,8 @@ type NewRequestCommand struct {
 func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 	order := om.CreateNewOrder(c.OrderNumber, c.NewOrder)
 
+	log.Info.Println("New Order created:", order)
+
 	for _, item := range c.NewOrder.Items {
 		isReady, err := i.IsItemReady(item.Name)
 		if err != nil {
@@ -28,6 +30,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 		}
 
 		if isReady {
+			log.Info.Println("Item", item, "is of type automatically ready. No need to check stack if one in available. Packing automatically.")
 			order.PackItem(item.Name, item.Quantity)
 		} else {
 			err = c.handlePreparationItems(ctx, item, &order)
@@ -49,6 +52,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 }
 
 func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.Item, order *om.Order) (err error) {
+	log.Info.Println("Item", item, "needs to be prepared first. Checking stack if one in available.")
 	amountInStock := c.Stack.GetCurrent(item.Name)
 	if amountInStock == 0 {
 		log.Info.Println("Sending Request to kitchen for", item.Quantity, "new", item.Name)
@@ -58,7 +62,9 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.I
 		}
 	} else {
 		var itemTaken int
+
 		if amountInStock > item.Quantity {
+			log.Info.Println("Stack has required quantity of item", item.Name)
 			itemTaken = item.Quantity
 		} else {
 			itemTaken = item.Quantity - amountInStock
@@ -77,6 +83,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.I
 			return err
 		}
 
+		log.Info.Println("Packing ", itemTaken, "of", item.Name, "into order", order.OrderNumber)
 		order.PackItem(item.Name, itemTaken)
 	}
 	return nil

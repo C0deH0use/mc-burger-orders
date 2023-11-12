@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
+	"mc-burger-orders/event"
 	"mc-burger-orders/utils"
 	"strconv"
 	"testing"
@@ -15,7 +18,7 @@ var (
 	sut        *KitchenService
 	ctx        context.Context
 	testReader *kafka.Reader
-	topic      = "test-kitchen-requests"
+	topic      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
 func TestKitchenService_RequestForOrder(t *testing.T) {
@@ -25,11 +28,12 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 	if err != nil {
 		assert.Fail(t, "cannot read Brokers from kafka container")
 	}
-	kafkaConfig := KitchenServiceConfigs{
+	kafkaConfig := &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
 		NumPartitions:     1,
 		ReplicationFactor: 1,
+		AutoCreateTopic:   true,
 	}
 	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
@@ -46,9 +50,9 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 	})
 
 	// Clean up the container after
-	defer func() {
+	t.Cleanup(func() {
 		utils.TerminateKafka(kafkaContainer)
-	}()
+	})
 }
 
 func shouldSendNewMessageToTopic(t *testing.T) {

@@ -26,11 +26,11 @@ type EventHandler struct {
 	kitchenService service.KitchenRequestService
 }
 
-func NewOrderEventHandler(database *mongo.Database, kitchenConfigs service.KitchenServiceConfigs, s *stack.Stack) *EventHandler {
+func NewOrderEventHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *EventHandler {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
-	kitchenService := service.NewKitchenServiceFrom(kitchenConfigs)
+	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
 
 	return &EventHandler{
 		stack:          s,

@@ -63,7 +63,7 @@ func main() {
 
 					err := eventBus.PublishEvent(newMessage)
 					if err != nil {
-						log.Error.Panicf("failed to publish message on event bus", err)
+						log.Error.Panicf("failed to publish message on event bus: %v", err)
 					}
 				}
 			}

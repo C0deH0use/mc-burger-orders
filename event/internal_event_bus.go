@@ -2,21 +2,18 @@ package event
 
 import (
 	"github.com/segmentio/kafka-go"
+	"mc-burger-orders/command"
 	"mc-burger-orders/log"
 	"reflect"
 )
 
-func typeOf(i interface{}) string {
-	return reflect.TypeOf(i).Elem().Name()
-}
-
 type InternalEventBus struct {
-	eventHandlers map[string]map[Handler]struct{}
+	eventHandlers map[string]map[command.Handler]struct{}
 }
 
 func NewInternalEventBus() *InternalEventBus {
 	return &InternalEventBus{
-		eventHandlers: make(map[string]map[Handler]struct{}),
+		eventHandlers: make(map[string]map[command.Handler]struct{}),
 	}
 }
 
@@ -27,10 +24,10 @@ func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
 		for handler := range handlers {
 			result, err := handler.Handle(message)
 			if err != nil {
-				log.Error.Println("Error when processing following event:", eventType, "by handler -> ", reflect.TypeOf(handler))
+				log.Error.Printf("Error when processing following event: %v by handler -> %v\n", eventType, reflect.TypeOf(handler))
 				return err
 			}
-			log.Info.Println("Event", eventType, "was handled with result", result)
+			log.Info.Printf("Event %v was handled with result %v\n", eventType, result)
 		}
 	}
 	return nil
@@ -38,19 +35,18 @@ func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
 
 // AddHandler registers an event handler for all the events specified in the
 // variadic events parameter.
-func (b *InternalEventBus) AddHandler(handler Handler, events ...interface{}) {
+func (b *InternalEventBus) AddHandler(handler command.Handler, events ...string) {
 
 	for _, event := range events {
-		typeName := typeOf(event)
 
 		// There can be multiple handlers for any event.
 		// Here we check that a map is initialized to hold these handlers
 		// for a given type. If not we create one.
-		if _, ok := b.eventHandlers[typeName]; !ok {
-			b.eventHandlers[typeName] = make(map[Handler]struct{})
+		if _, ok := b.eventHandlers[event]; !ok {
+			b.eventHandlers[event] = make(map[command.Handler]struct{})
 		}
 
 		// Add this handler to the collection of handlers for the type.
-		b.eventHandlers[typeName][handler] = struct{}{}
+		b.eventHandlers[event][handler] = struct{}{}
 	}
 }

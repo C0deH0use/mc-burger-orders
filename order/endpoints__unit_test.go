@@ -22,10 +22,10 @@ type FakeOrderEndpoints struct {
 	repository     m.OrderRepository
 	queryService   m.OrderQueryService
 	kitchenService service.KitchenRequestService
-	handler        *FakeCommandHandler
+	dispatcher     *FakeCommandDispatcher
 }
 
-type FakeCommandHandler struct {
+type FakeCommandDispatcher struct {
 	result       bool
 	methodCalled bool
 }
@@ -35,7 +35,7 @@ type FakeRepository struct {
 	methodCalled bool
 }
 
-func (e *FakeCommandHandler) Execute(c command2.Command) (bool, error) {
+func (e *FakeCommandDispatcher) Execute(c command2.Command) (bool, error) {
 	e.methodCalled = true
 	return e.result, nil
 }
@@ -46,7 +46,7 @@ func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {
 		queryService:    f.queryService,
 		orderRepository: f.repository,
 		kitchenService:  f.kitchenService,
-		commandHandler:  f.handler,
+		dispatcher:      f.dispatcher,
 	}
 }
 
@@ -110,7 +110,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{result: true},
+		dispatcher:     &FakeCommandDispatcher{result: true},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -136,7 +136,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	assert.Equal(t, expectedOrderNumber, actualOrderNumber)
 
 	// and
-	assert.True(t, fakeEndpoints.handler.methodCalled)
+	assert.True(t, fakeEndpoints.dispatcher.methodCalled)
 }
 
 func shouldReturnBadRequestWhenNoItems(t *testing.T) {
@@ -156,7 +156,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{},
+		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -177,7 +177,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	assert.Equal(t, "Schema Error. Key: 'NewOrder.Items' Error:Field validation for 'Items' failed on the 'required' tag", payload["errorMessage"])
 
 	// and
-	assert.False(t, fakeEndpoints.handler.methodCalled)
+	assert.False(t, fakeEndpoints.dispatcher.methodCalled)
 }
 
 func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
@@ -200,7 +200,7 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{},
+		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -221,5 +221,5 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	assert.Equal(t, "Schema Error. Key: 'NewOrder.Items' Error:Field validation for 'Items' failed on the 'gt' tag", payload["errorMessage"])
 
 	// and
-	assert.False(t, fakeEndpoints.handler.methodCalled)
+	assert.False(t, fakeEndpoints.dispatcher.methodCalled)
 }

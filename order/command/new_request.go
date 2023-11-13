@@ -21,7 +21,7 @@ type NewRequestCommand struct {
 func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 	order := om.CreateNewOrder(c.OrderNumber, c.NewOrder)
 
-	log.Info.Println("New Order created:", order)
+	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)
 
 	for _, item := range c.NewOrder.Items {
 		isReady, err := i.IsItemReady(item.Name)
@@ -30,7 +30,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 		}
 
 		if isReady {
-			log.Info.Println("Item", item, "is of type automatically ready. No need to check stack if one in available. Packing automatically.")
+			log.Info.Printf("Item %v is of type automatically ready. No need to check stack if one in available. Packing automatically.", item.Name)
 			order.PackItem(item.Name, item.Quantity)
 		} else {
 			err = c.handlePreparationItems(ctx, item, &order)
@@ -55,7 +55,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.I
 	log.Info.Println("Item", item, "needs to be prepared first. Checking stack if one in available.")
 	amountInStock := c.Stack.GetCurrent(item.Name)
 	if amountInStock == 0 {
-		log.Info.Println("Sending Request to kitchen for", item.Quantity, "new", item.Name)
+		log.Info.Printf("Sending Request to kitchen for %d new %v", item.Quantity, item.Name)
 		err := c.KitchenService.RequestForOrder(ctx, item.Name, item.Quantity, order.OrderNumber)
 		if err != nil {
 			return err
@@ -70,7 +70,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.I
 			itemTaken = item.Quantity - amountInStock
 			remaining := item.Quantity - itemTaken
 
-			log.Info.Println("Sending Request to kitchen for", remaining, "new", item.Name)
+			log.Info.Printf("Sending Request to kitchen for %d new %v", remaining, item.Name)
 			err := c.KitchenService.RequestForOrder(ctx, item.Name, remaining, order.OrderNumber)
 			if err != nil {
 				return err
@@ -83,7 +83,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item i.I
 			return err
 		}
 
-		log.Info.Println("Packing ", itemTaken, "of", item.Name, "into order", order.OrderNumber)
+		log.Info.Printf("Packing %d of %v into order %d", itemTaken, item.Name, order.OrderNumber)
 		order.PackItem(item.Name, itemTaken)
 	}
 	return nil

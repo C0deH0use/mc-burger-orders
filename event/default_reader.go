@@ -6,12 +6,19 @@ import (
 	"mc-burger-orders/log"
 )
 
+type NewMessageHandler interface {
+	OnNewMessage(message kafka.Message) error
+	HandleError(err error, message kafka.Message)
+}
+
 type DefaultReader struct {
 	*kafka.Reader
 	configuration *TopicConfigs
+	eventBus      EventBus
+	processRepeat map[string]int
 }
 
-func NewTopicReader(configuration *TopicConfigs) *DefaultReader {
+func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultReader {
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
@@ -26,20 +33,75 @@ func NewTopicReader(configuration *TopicConfigs) *DefaultReader {
 		MinBytes:  10e3, // 10KB
 		MaxBytes:  10e6, // 10MB
 	})
-	return &DefaultReader{reader, configuration}
+	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
 }
 
-func (r *DefaultReader) SubscribeToTopic(ctx context.Context, msgChan chan kafka.Message) {
-	log.Info.Println("Subscribing to topic", r.configuration.Topic)
-	for {
-		msg, err := r.ReadMessage(ctx)
+func (r *DefaultReader) SubscribeToTopic(stackMessages chan kafka.Message) {
+	go func() {
+		log.Info.Println("Subscribing to topic", r.configuration.Topic)
 
-		if err != nil {
-			log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
+		for {
+			r.ReadMessageFromTopic(context.Background(), stackMessages)
 		}
-		if msg.Topic == r.configuration.Topic {
-			log.Info.Println("Read new message with key: ", string(msg.Key))
-			msgChan <- msg
+	}()
+	go func() {
+		for newMessage := range stackMessages {
+			go func(message kafka.Message) {
+				r.OnNewMessage(message)
+			}(newMessage)
 		}
+	}()
+}
+
+func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan kafka.Message) {
+	msg, err := r.ReadMessage(ctx)
+	if err != nil {
+		log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
 	}
+
+	log.Warning.Println("Received messaged for topic:", msg.Topic)
+	if msg.Topic == r.configuration.Topic {
+		msgKey := string(msg.Key)
+		msgValue := string(msg.Value)
+		log.Info.Println("Processing message with key: ", msgKey, "message: ", msgValue)
+		msgChan <- msg
+	}
+}
+
+func (r *DefaultReader) OnNewMessage(message kafka.Message) {
+	messageKey := string(message.Key)
+	messageValue := string(message.Value)
+	log.Warning.Printf("New message read from topic (%v) arrived, key: %v message value: %v\n", message.Topic, messageKey, messageValue)
+
+	err := r.eventBus.PublishEvent(message)
+	if err != nil {
+		log.Error.Printf("failed to publish message on event bus: %v\n", err)
+		r.HandleError(err, message)
+	}
+}
+
+func (r *DefaultReader) HandleError(err error, message kafka.Message) {
+	key := string(message.Key)
+	topic := message.Topic
+	log.Error.Printf("failed to process message [%v] from topic: %v on event bus: %v\n", key, topic, err.Error())
+
+	repeatCnt, ok := r.processRepeat[key]
+	if !ok {
+		repeatCnt = 0
+	}
+
+	if repeatCnt < 4 {
+		// TODO: Error handling -> repeat message with delay
+		log.Error.Printf("Message [%v] is going to be send back to topic to be repeater in processing\n", key)
+		r.processRepeat[key] = repeatCnt + 1
+		return
+	}
+
+	if repeatCnt >= 4 {
+		log.Error.Printf("Message [%v] was already repeated %d. Going to be send message to dead-letter queue\n", key, repeatCnt)
+		return
+	}
+
+	// default error handling
+	log.Error.Println("default error handling when event could not be processed", err.Error())
 }

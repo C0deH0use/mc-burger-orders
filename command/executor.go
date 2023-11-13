@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"mc-burger-orders/log"
+	"reflect"
 )
 
 type Dispatcher interface {
@@ -12,11 +13,11 @@ type Dispatcher interface {
 type DefaultDispatcher struct{}
 
 func (r *DefaultDispatcher) Execute(c Command) (bool, error) {
-	log.Info.Println("About to execute following command", c)
+	log.Info.Println("About to execute following command", reflect.TypeOf(c))
 
 	result, err := c.Execute(context.Background())
 	if err != nil {
-		log.Error.Println("While executing command", c, "following error occurred", err.Error())
+		log.Error.Printf("While executing command %v following error occurred %v\n", c, err.Error())
 		return false, err
 	}
 

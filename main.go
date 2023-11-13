@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
@@ -9,7 +8,6 @@ import (
 	"mc-burger-orders/middleware"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
-	"net/http"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
@@ -20,24 +18,21 @@ func main() {
 	kitchenStack := stack.NewStack(stack.CleanStack())
 	stackTopicConfigs := stack.TopicConfigsFromEnv()
 	kitchenTopicConfigs := service.KitchenTopicConfigsFromEnv()
-	stackTopicReader := event.NewTopicReader(stackTopicConfigs)
 	eventBus := event.NewInternalEventBus()
+	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
 
-	orderEventHandler := order.NewOrderEventHandler(mongoDb, kitchenTopicConfigs, kitchenStack)
+	orderCommandsHandler := order.NewOrderCommandHandler(mongoDb, kitchenTopicConfigs, kitchenStack)
+	stackMessages := make(chan kafka.Message)
+
 	r := gin.Default()
 	r.ForwardedByClientIP = true
+
 	err := r.SetTrustedProxies([]string{"127.0.0.1"})
 	if err != nil {
 		log.Error.Panicf("error when setting trusted proxies. Reason: %s", err)
 	}
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Hello World!",
-		})
-	})
-
-	eventBus.AddHandler(orderEventHandler, stack.ItemAddedToStackEvent, order.CollectedEvent)
+	eventBus.AddHandler(orderCommandsHandler, stack.ItemAddedToStackEvent, order.CollectedEvent)
 
 	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, kitchenStack)
 
@@ -49,26 +44,8 @@ func main() {
 		log.Error.Panicf("error when starting REST service. Reason: %s", err)
 	}
 
-	stackMessages := make(chan kafka.Message)
-	go stackTopicReader.SubscribeToTopic(context.Background(), stackMessages)
+	stackTopicReader.SubscribeToTopic(stackMessages)
 
-	go func() {
-		for {
-			select {
-			case newMessage := <-stackMessages:
-				{
-					messageKey := string(newMessage.Key)
-					message := string(newMessage.Value)
-					log.Info.Println("New message read from topic (", newMessage.Topic, ") arrived, key: ", messageKey, "message value:", message)
-
-					err := eventBus.PublishEvent(newMessage)
-					if err != nil {
-						log.Error.Panicf("failed to publish message on event bus: %v", err)
-					}
-				}
-			}
-		}
-	}()
 }
 
 func loadEnv() {

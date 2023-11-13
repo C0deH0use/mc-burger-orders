@@ -38,11 +38,7 @@ var (
 func TestOrderHttpEndpoints(t *testing.T) {
 	ctx := context.Background()
 	mongoContainer = utils.TestWithMongo(ctx)
-	kafkaContainer := utils.TestWithKafka(ctx)
-	brokers, err := kafkaContainer.Brokers(ctx)
-	if err != nil {
-		assert.Fail(t, "cannot read Brokers from kafka container")
-	}
+	kafkaContainer, brokers := utils.TestWithKafka(ctx)
 	kafkaConfig = &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
@@ -197,30 +193,26 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	assert.Equal(t, item.Item{Name: "ice-cream", Quantity: 1}, actualOrder.PackedItems[0])
 
 	// and
-	receivedMessages := make([]kafka.Message, 0)
+	actualMessages := make([]*s.KitchenRequestMessage, 0)
+
 	retries := 2
 	for i := 0; i < retries; i++ {
+		log.Print("Reading messages from test topic", topic)
 		message, err := testReader.ReadMessage(context.Background())
 
 		if err != nil {
-			log.Print(t, "failed reading message on test Topic", err)
-			break
+			assert.Fail(t, "failed reading message on test topic", err)
+			return
 		}
 		if message.Key != nil {
-			receivedMessages = append(receivedMessages, message)
+			actualMessage := &s.KitchenRequestMessage{}
+			err = json.Unmarshal(message.Value, actualMessage)
+			if err != nil {
+				assert.Fail(t, "failed to unmarshal message on test topic", err)
+				return
+			}
+			actualMessages = append(actualMessages, actualMessage)
 		}
-	}
-
-	// and
-	actualMessages := make([]*s.KitchenRequestMessage, 0)
-
-	for _, message := range receivedMessages {
-		actualMessage := &s.KitchenRequestMessage{}
-		err = json.Unmarshal(message.Value, actualMessage)
-		if err != nil {
-			assert.Fail(t, "failed to unmarshal message on test Topic", err)
-		}
-		actualMessages = append(actualMessages, actualMessage)
 	}
 
 	assert.Equal(t, len(expectedMessages), len(actualMessages))

@@ -23,11 +23,7 @@ var (
 
 func TestKitchenService_RequestForOrder(t *testing.T) {
 	ctx = context.Background()
-	kafkaContainer := utils.TestWithKafka(ctx)
-	brokers, err := kafkaContainer.Brokers(ctx)
-	if err != nil {
-		assert.Fail(t, "cannot read Brokers from kafka container")
-	}
+	kafkaContainer, brokers := utils.TestWithKafka(ctx)
 	kafkaConfig := &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,

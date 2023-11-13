@@ -23,14 +23,20 @@ func TestWithMongo(ctx context.Context) *mongodb.MongoDBContainer {
 	return mongodbContainer
 }
 
-func TestWithKafka(ctx context.Context) *kafka.KafkaContainer {
+func TestWithKafka(ctx context.Context) (*kafka.KafkaContainer, []string) {
 	kafkaContainer, err := kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
 
 	if err != nil {
 		panic(err)
 	}
 
-	return kafkaContainer
+	brokers, err := kafkaContainer.Brokers(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Print("✅✅✅ Kafka Container is Up.... Brokers: ", brokers, ": ✅✅✅")
+	return kafkaContainer, brokers
 }
 
 func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
@@ -52,16 +58,19 @@ func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
 func TerminateMongo(mongodbContainer *mongodb.MongoDBContainer) {
 	ctx := context.Background()
 
+	log.Print("Terminating MongoDB....")
+
 	if err := mongodbContainer.Terminate(ctx); err != nil {
-		panic(err)
+		log.Println("Error while terminating Mongo Container", err)
 	}
 }
 
 func TerminateKafka(kafkaContainer *kafka.KafkaContainer) {
 	ctx := context.Background()
 
+	log.Print("Terminating Kafka")
 	if err := kafkaContainer.Terminate(ctx); err != nil {
-		panic(err)
+		log.Println("Error while terminating Kafka Container", err)
 	}
 }
 

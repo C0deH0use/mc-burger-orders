@@ -14,25 +14,21 @@ import (
 	"mc-burger-orders/stack"
 )
 
-var (
-	CollectedEvent = "order-collected"
-)
-
-type EventHandler struct {
-	event.DefaultEventHandler
+type CommandsHandler struct {
+	command.DefaultCommandHandler
 	stack          *stack.Stack
 	queryService   m.OrderQueryService
 	repository     m.OrderRepository
 	kitchenService service.KitchenRequestService
 }
 
-func NewOrderEventHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *EventHandler {
+func NewOrderCommandHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *CommandsHandler {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
 
-	return &EventHandler{
+	return &CommandsHandler{
 		stack:          s,
 		queryService:   queryService,
 		repository:     repository,
@@ -40,7 +36,7 @@ func NewOrderEventHandler(database *mongo.Database, kitchenTopicConfigs *event.T
 	}
 }
 
-func (o *EventHandler) GetCommand(message kafka.Message) (command.Command, error) {
+func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command, error) {
 	var orderNumber int64
 	for _, header := range message.Headers {
 		if header.Key == "order" {
@@ -49,22 +45,23 @@ func (o *EventHandler) GetCommand(message kafka.Message) (command.Command, error
 		}
 	}
 
-	eventType := string(message.Key)
+	commands := make([]command.Command, 0)
+	eventType := message.Topic
 	switch eventType {
 	case stack.ItemAddedToStackEvent:
 		{
-			return &c.PackItemCommand{
+			commands = append(commands, &c.PackItemCommand{
 				Stack:       o.stack,
 				Repository:  o.repository,
 				OrderNumber: orderNumber,
-			}, nil
+			})
 		}
 	case CollectedEvent:
 		{
-			return &c.OrderCollectedCommand{
+			commands = append(commands, &c.OrderCollectedCommand{
 				Repository:  o.repository,
 				OrderNumber: orderNumber,
-			}, nil
+			})
 		}
 	default:
 		{
@@ -73,4 +70,7 @@ func (o *EventHandler) GetCommand(message kafka.Message) (command.Command, error
 			return nil, err
 		}
 	}
+
+	return commands, nil
+
 }

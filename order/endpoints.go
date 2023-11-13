@@ -23,7 +23,7 @@ type Endpoints struct {
 	queryService    m.OrderQueryService
 	orderRepository m.OrderRepository
 	kitchenService  service.KitchenRequestService
-	commandHandler  command.Dispatcher
+	dispatcher      command.Dispatcher
 }
 
 func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
@@ -31,10 +31,9 @@ func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.Topi
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
-	handler := &command.DefaultDispatcher{}
 
 	return &Endpoints{
-		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, commandHandler: handler,
+		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, dispatcher: &command.DefaultDispatcher{},
 	}
 }
 
@@ -71,7 +70,7 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 
 	orderNumber := e.queryService.GetNextOrderNumber(c)
 	cmd := e.CreateNewOrderCommand(orderNumber, newOrder)
-	result, err := e.commandHandler.Execute(cmd)
+	result, err := e.dispatcher.Execute(cmd)
 
 	if err != nil {
 		log.Error.Println(err)

@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"mc-burger-orders/log"
 	"time"
 )
 
@@ -38,7 +38,7 @@ func NewRepository(database *mongo.Database) *OrderRepositoryImpl {
 
 func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
 	order.ModifiedAt = time.Now()
-	log.Println("Updating existing Order => ", order)
+	log.Info.Printf("Updating existing Order Number: %v", order.OrderNumber)
 	filterDef := bson.D{{"orderNumber", order.OrderNumber}}
 	updateDef := bson.D{{"$set", order}}
 	upsertOption := true
@@ -48,7 +48,7 @@ func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (
 
 	result, err := r.c.UpdateOne(ctx, filterDef, updateDef, updateOptions)
 	if err != nil {
-		log.Println("Error when updating order in db", err)
+		log.Error.Println("Error when updating order in db", err)
 		return nil, err
 	}
 
@@ -59,13 +59,13 @@ func (r *OrderRepositoryImpl) FetchById(ctx context.Context, id interface{}) (*O
 	filter := bson.D{{"_id", id}}
 	result := r.c.FindOne(ctx, filter)
 	if result.Err() != nil {
-		log.Println("Error when fetching order by id", id, result.Err())
+		log.Error.Println("Error when fetching order by id", id, result.Err())
 		return nil, result.Err()
 	}
 
 	var order *Order
 	if err := result.Decode(&order); err != nil {
-		log.Println("Error reading Order raw data", err)
+		log.Error.Println("Error reading Order raw data", err)
 		return nil, err
 	}
 
@@ -76,13 +76,13 @@ func (r *OrderRepositoryImpl) FetchByOrderNumber(ctx context.Context, orderNumbe
 	filter := bson.D{{"orderNumber", orderNumber}}
 	result := r.c.FindOne(ctx, filter)
 	if result.Err() != nil {
-		log.Println("Error when fetching order by orderNumber", orderNumber, result.Err())
+		log.Error.Println("Error when fetching order by orderNumber", orderNumber, result.Err())
 		return nil, result.Err()
 	}
 
 	var order *Order
 	if err := result.Decode(&order); err != nil {
-		log.Println("Error reading Order raw data", err)
+		log.Error.Println("Error reading Order raw data", err)
 		return nil, err
 	}
 
@@ -92,13 +92,13 @@ func (r *OrderRepositoryImpl) FetchByOrderNumber(ctx context.Context, orderNumbe
 func (r *OrderRepositoryImpl) FetchMany(ctx context.Context) ([]Order, error) {
 	cursor, err := r.c.Find(ctx, bson.D{})
 	if err != nil {
-		log.Println("Error when fetching orders from db", err)
+		log.Error.Println("Error when fetching orders from db", err)
 		return nil, err
 	}
 
 	var orders []Order
 	if err = cursor.All(context.TODO(), &orders); err != nil {
-		log.Println("Error reading cursor data", err)
+		log.Error.Println("Error reading cursor data", err)
 		return nil, err
 	}
 

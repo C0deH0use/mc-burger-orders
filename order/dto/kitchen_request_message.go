@@ -1,4 +1,4 @@
-package service
+package dto
 
 type KitchenRequestMessage struct {
 	ItemName string `json:"itemName"`

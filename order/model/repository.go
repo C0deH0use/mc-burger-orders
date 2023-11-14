@@ -13,6 +13,10 @@ type FetchByIdRepository interface {
 	FetchById(ctx context.Context, id interface{}) (*Order, error)
 }
 
+type FetchByOrderNumberRepository interface {
+	FetchByOrderNumber(ctx context.Context, orderNumber int64) (*Order, error)
+}
+
 type FetchManyRepository interface {
 	FetchMany(ctx context.Context) ([]Order, error)
 }
@@ -24,6 +28,7 @@ type StoreRepository interface {
 type OrderRepository interface {
 	StoreRepository
 	FetchByIdRepository
+	FetchByOrderNumberRepository
 	FetchManyRepository
 }
 

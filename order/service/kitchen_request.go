@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cast"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
+	"mc-burger-orders/order/dto"
 	"os"
 	"strconv"
 	"strings"
@@ -56,7 +57,7 @@ func NewKitchenServiceFrom(config *event.TopicConfigs) *KitchenService {
 func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, quantity int, orderNumber int64) error {
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))})
-	message := NewKitchenRequestMessage(itemName, quantity)
+	message := dto.NewKitchenRequestMessage(itemName, quantity)
 	msgValue, err := json.Marshal(message)
 	if err != nil {
 		err = fmt.Errorf("failed to convert message details to bytes. Reason: %s", err)

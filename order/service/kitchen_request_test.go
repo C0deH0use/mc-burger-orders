@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"mc-burger-orders/event"
+	"mc-burger-orders/order/dto"
 	"mc-burger-orders/utils"
 	"strconv"
 	"testing"
@@ -65,7 +66,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 
 	// and
 	expectedHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
-	expectedMessage := NewKitchenRequestMessage(itemName, quantity)
+	expectedMessage := dto.NewKitchenRequestMessage(itemName, quantity)
 	message, err := testReader.ReadMessage(context.Background())
 
 	if err != nil {
@@ -77,7 +78,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	assert.Len(t, message.Headers, 1)
 	assert.Equal(t, expectedHeader, message.Headers[0])
 
-	actualMessage := &KitchenRequestMessage{}
+	actualMessage := &dto.KitchenRequestMessage{}
 	err = json.Unmarshal(message.Value, actualMessage)
 	if err != nil {
 		assert.Fail(t, "failed to unmarshal message on test Topic", err)

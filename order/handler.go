@@ -51,9 +51,10 @@ func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command,
 	case stack.ItemAddedToStackEvent:
 		{
 			commands = append(commands, &c.PackItemCommand{
-				Stack:       o.stack,
-				Repository:  o.repository,
-				OrderNumber: orderNumber,
+				Stack:          o.stack,
+				Repository:     o.repository,
+				KitchenService: o.kitchenService,
+				Message:        message,
 			})
 		}
 	case CollectedEvent:

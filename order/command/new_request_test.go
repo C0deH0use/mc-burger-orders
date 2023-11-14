@@ -2,80 +2,12 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"testing"
 )
-
-type StubService struct {
-	o            *m.Order
-	err          error
-	methodCalled []map[string]interface{}
-}
-
-func (s *StubService) RequestForOrder(ctx context.Context, itemName string, quantity int, orderNumber int64) error {
-	args := map[string]interface{}{
-		"itemName":    itemName,
-		"quantity":    quantity,
-		"orderNumber": orderNumber,
-	}
-	s.methodCalled = append(s.methodCalled, args)
-	return nil
-}
-
-func (s *StubService) CalledCnt() int {
-	return len(s.methodCalled)
-}
-
-func (s *StubService) HaveBeenCalledWith(itemName string, quantity int, orderNumber int64) bool {
-	r := false
-
-	for _, args := range s.methodCalled {
-		argName := args["itemName"]
-		argQuantity := args["quantity"]
-		argNumber := args["orderNumber"]
-		if argName == itemName && argQuantity == quantity && argNumber == orderNumber {
-			r = true
-		}
-	}
-
-	return r
-}
-
-func (s *StubService) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": order})
-	return s.o, s.err
-}
-
-func (s *StubService) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchById": id})
-	return s.o, nil
-}
-func (s *StubService) FetchMany(ctx context.Context) ([]m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
-	return []m.Order{*s.o}, nil
-}
-
-func (s *StubService) GetOrderArgs() []m.Order {
-	var u []m.Order
-
-	for _, methodInvocation := range s.methodCalled {
-		if v, exists := methodInvocation["InsertOrUpdate"]; exists {
-			var o = m.Order{}
-			dbByte, _ := json.Marshal(v)
-			err := json.Unmarshal(dbByte, &o)
-			if err != nil {
-				panic(err)
-			}
-			u = append(u, o)
-		}
-	}
-
-	return u
-}
 
 func Test_CreateNewOrder(t *testing.T) {
 	// given
@@ -110,7 +42,7 @@ func Test_CreateNewOrder(t *testing.T) {
 	}
 
 	stubKitchenService := &StubService{}
-	stubRepository := &StubService{o: &m.Order{
+	stubRepository := &StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
@@ -133,8 +65,8 @@ func Test_CreateNewOrder(t *testing.T) {
 	assert.True(t, result)
 
 	// and
-	assert.Len(t, stubRepository.GetOrderArgs(), 1)
-	order := stubRepository.GetOrderArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
+	order := stubRepository.GetUpsertArgs()[0]
 
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
@@ -185,7 +117,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	}
 
 	stubKitchenService := &StubService{}
-	stubRepository := &StubService{o: &m.Order{
+	stubRepository := &StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
@@ -208,8 +140,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.True(t, result)
 
 	// and
-	assert.Len(t, stubRepository.GetOrderArgs(), 1)
-	order := stubRepository.GetOrderArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
+	order := stubRepository.GetUpsertArgs()[0]
 
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)
@@ -246,7 +178,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 		},
 	}
 	stubKitchenService := &StubService{}
-	stubRepository := &StubService{o: &m.Order{
+	stubRepository := &StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
@@ -269,8 +201,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.True(t, result)
 
 	// and
-	assert.Len(t, stubRepository.GetOrderArgs(), 1)
-	order := stubRepository.GetOrderArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
+	order := stubRepository.GetUpsertArgs()[0]
 
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)

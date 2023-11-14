@@ -2,7 +2,6 @@ package order
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
@@ -30,11 +29,6 @@ type FakeCommandDispatcher struct {
 	methodCalled bool
 }
 
-type FakeRepository struct {
-	orders       []*m.Order
-	methodCalled bool
-}
-
 func (e *FakeCommandDispatcher) Execute(c command2.Command) (bool, error) {
 	e.methodCalled = true
 	return e.result, nil
@@ -48,28 +42,6 @@ func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {
 		kitchenService:  f.kitchenService,
 		dispatcher:      f.dispatcher,
 	}
-}
-
-func (e *FakeRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {
-	e.methodCalled = true
-	return e.orders[0], nil
-}
-
-func (e *FakeRepository) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
-	e.methodCalled = true
-	return e.orders[0], nil
-}
-func (e *FakeRepository) FetchMany(ctx context.Context) ([]m.Order, error) {
-	e.methodCalled = true
-	orders := make([]m.Order, len(e.orders))
-	for _, valPointer := range e.orders {
-		orders = append(orders, *valPointer)
-	}
-	return orders, nil
-}
-
-func (e *FakeRepository) GetNext(ctx context.Context) (int64, error) {
-	return expectedOrderNumber, nil
 }
 
 var expectedOrderNumber = int64(10)
@@ -102,8 +74,8 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := &StubRepository{}
+	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
@@ -148,8 +120,8 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := &StubRepository{}
+	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
@@ -192,8 +164,8 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := &StubRepository{}
+	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),

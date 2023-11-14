@@ -1,4 +1,4 @@
-package command
+package order
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 type StubRepository struct {
 	o            *m.Order
+	nextNumber   int64
 	err          error
 	methodCalled []map[string]interface{}
 }
@@ -27,6 +28,10 @@ func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int
 func (s *StubRepository) FetchMany(ctx context.Context) ([]m.Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
 	return []m.Order{*s.o}, nil
+}
+
+func (e *StubRepository) GetNext(ctx context.Context) (int64, error) {
+	return e.nextNumber, nil
 }
 
 func (s *StubRepository) GetUpsertArgs() []m.Order {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
+	order2 "mc-burger-orders/order"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"testing"
@@ -41,8 +42,8 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &StubService{}
-	stubRepository := &StubRepository{o: &m.Order{
+	stubKitchenService := &order2.StubService{}
+	stubRepository := &order2.StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
@@ -116,8 +117,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &StubService{}
-	stubRepository := &StubRepository{o: &m.Order{
+	stubKitchenService := &order2.StubService{}
+	stubRepository := &order2.StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
@@ -177,8 +178,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := &StubService{}
-	stubRepository := &StubRepository{o: &m.Order{
+	stubKitchenService := &order2.StubService{}
+	stubRepository := &order2.StubRepository{o: &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,

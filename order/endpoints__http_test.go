@@ -83,7 +83,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 
 	// and
 	var payload []map[string]any
-	err := json.Unmarshal([]byte(resp.Body.String()), &payload)
+	err := json.Unmarshal(resp.Body.Bytes(), &payload)
 	if err != nil {
 		assert.Fail(t, "Error while unmarshalling response payload to map", err)
 	}
@@ -166,7 +166,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 
 	// and
 	var payload map[string]interface{}
-	err := json.Unmarshal([]byte(resp.Body.String()), &payload)
+	err := json.Unmarshal(resp.Body.Bytes(), &payload)
 	if err != nil {
 		assert.Fail(t, "Error while unmarshalling response payload to map", err)
 	}

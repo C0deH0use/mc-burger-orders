@@ -14,12 +14,16 @@ import (
 )
 
 var (
+	hamburger           = "hamburger"
+	cheeseburger        = "cheeseburger"
+	mcSpicy             = "mc-spicy"
+	spicyStripes        = "spicy-stripes"
 	expectedOrderNumber = int64(1011)
 	orderItems          = []i.Item{
-		{"hamburger", 2},
-		{"cheeseburger", 2},
-		{"mc-spicy", 3},
-		{"spicy-stripes", 8},
+		{Name: hamburger, Quantity: 2},
+		{Name: cheeseburger, Quantity: 2},
+		{Name: mcSpicy, Quantity: 3},
+		{Name: spicyStripes, Quantity: 8},
 	}
 )
 
@@ -36,18 +40,18 @@ func TestPackItemCommand_Execute(t *testing.T) {
 func shouldPackItemPointedInMessage(t *testing.T) {
 	// given
 	s := stack.NewStack(stack.CleanStack())
-	s.AddMany("hamburger", 3)
-	s.AddMany("cheeseburger", 2)
-	s.AddMany("mc-spicy", 4)
-	s.AddMany("spicy-stripes", 2)
+	s.AddMany(hamburger, 3)
+	s.AddMany(cheeseburger, 2)
+	s.AddMany(mcSpicy, 4)
+	s.AddMany(spicyStripes, 2)
 
 	messageValue := make([]map[string]any, 0)
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "mc-spicy",
+		"itemName": mcSpicy,
 		"quantity": 2,
 	})
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "hamburger",
+		"itemName": hamburger,
 		"quantity": 2,
 	})
 
@@ -64,10 +68,10 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	}
 
 	expectedPackedItems := []i.Item{
-		{"cheeseburger", 1},
-		{"spicy-stripes", 2},
-		{"mc-spicy", 3},
-		{"hamburger", 2},
+		{Name: cheeseburger, Quantity: 1},
+		{Name: spicyStripes, Quantity: 2},
+		{Name: mcSpicy, Quantity: 3},
+		{Name: hamburger, Quantity: 2},
 	}
 
 	// when
@@ -88,10 +92,10 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	assert.Equal(t, actualOrder.PackedItems, expectedPackedItems)
 
 	// and
-	assert.Equal(t, 1, s.GetCurrent("hamburger"))
-	assert.Equal(t, 2, s.GetCurrent("cheeseburger"))
-	assert.Equal(t, 2, s.GetCurrent("spicy-stripes"))
-	assert.Equal(t, 1, s.GetCurrent("mc-spicy"))
+	assert.Equal(t, 1, s.GetCurrent(hamburger))
+	assert.Equal(t, 2, s.GetCurrent(cheeseburger))
+	assert.Equal(t, 2, s.GetCurrent(spicyStripes))
+	assert.Equal(t, 1, s.GetCurrent(mcSpicy))
 
 	// and
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
@@ -100,26 +104,26 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	// given
 	s := stack.NewStack(stack.CleanStack())
-	s.AddMany("hamburger", 3)
-	s.AddMany("cheeseburger", 2)
-	s.AddMany("mc-spicy", 4)
-	s.AddMany("spicy-stripes", 8)
+	s.AddMany(hamburger, 3)
+	s.AddMany(cheeseburger, 2)
+	s.AddMany(mcSpicy, 4)
+	s.AddMany(spicyStripes, 8)
 
 	messageValue := make([]map[string]any, 0)
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "mc-spicy",
+		"itemName": mcSpicy,
 		"quantity": 3,
 	})
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "hamburger",
+		"itemName": hamburger,
 		"quantity": 2,
 	})
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "cheeseburger",
+		"itemName": cheeseburger,
 		"quantity": 2,
 	})
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "spicy-stripes",
+		"itemName": spicyStripes,
 		"quantity": 7,
 	})
 
@@ -136,12 +140,12 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	}
 
 	expectedPackedItems := []i.Item{
-		{"cheeseburger", 1},
-		{"spicy-stripes", 2},
-		{"mc-spicy", 3},
-		{"hamburger", 2},
-		{"cheeseburger", 1},
-		{"spicy-stripes", 6},
+		{Name: cheeseburger, Quantity: 1},
+		{Name: spicyStripes, Quantity: 2},
+		{Name: mcSpicy, Quantity: 3},
+		{Name: hamburger, Quantity: 2},
+		{Name: cheeseburger, Quantity: 1},
+		{Name: spicyStripes, Quantity: 6},
 	}
 
 	// when
@@ -162,10 +166,10 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	assert.Equal(t, actualOrder.PackedItems, expectedPackedItems)
 
 	// and
-	assert.Equal(t, 1, s.GetCurrent("hamburger"))
-	assert.Equal(t, 1, s.GetCurrent("cheeseburger"))
-	assert.Equal(t, 2, s.GetCurrent("spicy-stripes"))
-	assert.Equal(t, 1, s.GetCurrent("mc-spicy"))
+	assert.Equal(t, 1, s.GetCurrent(hamburger))
+	assert.Equal(t, 1, s.GetCurrent(cheeseburger))
+	assert.Equal(t, 2, s.GetCurrent(spicyStripes))
+	assert.Equal(t, 1, s.GetCurrent(mcSpicy))
 
 	// and
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
@@ -174,12 +178,12 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	// given
 	s := stack.NewStack(stack.CleanStack())
-	s.AddMany("spicy-stripes", 3)
-	s.AddMany("cheeseburger", 2)
+	s.AddMany(spicyStripes, 3)
+	s.AddMany(cheeseburger, 2)
 
 	messageValue := make([]map[string]any, 0)
 	messageValue = append(messageValue, map[string]any{
-		"itemName": "spicy-stripes",
+		"itemName": spicyStripes,
 		"quantity": 3,
 	})
 
@@ -196,9 +200,9 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	}
 
 	expectedPackedItems := []i.Item{
-		{"cheeseburger", 1},
-		{"spicy-stripes", 2},
-		{"spicy-stripes", 3},
+		{Name: cheeseburger, Quantity: 1},
+		{Name: spicyStripes, Quantity: 2},
+		{Name: spicyStripes, Quantity: 3},
 	}
 
 	// when
@@ -219,12 +223,12 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	assert.Equal(t, actualOrder.PackedItems, expectedPackedItems)
 
 	// and
-	assert.Equal(t, 2, s.GetCurrent("cheeseburger"))
-	assert.Equal(t, 0, s.GetCurrent("spicy-stripes"))
+	assert.Equal(t, 2, s.GetCurrent(cheeseburger))
+	assert.Equal(t, 0, s.GetCurrent(spicyStripes))
 
 	// and
 	assert.Equal(t, 1, kitchenService.CalledCnt(), "No items have not been requested")
-	assert.True(t, kitchenService.HaveBeenCalledWith("spicy-stripes", 3, expectedOrderNumber))
+	assert.True(t, kitchenService.HaveBeenCalledWith(spicyStripes, 3, expectedOrderNumber))
 }
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
@@ -342,8 +346,8 @@ func givenExistingOrder() *m.Order {
 		Status:      m.Requested,
 		Items:       orderItems,
 		PackedItems: []i.Item{
-			{"cheeseburger", 1},
-			{"spicy-stripes", 2},
+			{Name: cheeseburger, Quantity: 1},
+			{Name: spicyStripes, Quantity: 2},
 		},
 	}
 }

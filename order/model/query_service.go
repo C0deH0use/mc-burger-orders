@@ -3,7 +3,7 @@ package model
 import (
 	"github.com/gin-gonic/gin"
 	"log"
-	"mc-burger-orders/utils"
+	"mc-burger-orders/testing/utils"
 	"net/http"
 )
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
-	order2 "mc-burger-orders/order"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
+	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
 )
 
@@ -42,14 +42,15 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &order2.StubService{}
-	stubRepository := &order2.StubRepository{o: &m.Order{
+	stubKitchenService := stubs2.NewStubService()
+	expectedOrder := &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
-	}}
+	}
+	stubRepository := stubs2.NewStubRepositoryWithOrder(expectedOrder)
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
 		Stack:          s,
@@ -117,14 +118,15 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := &order2.StubService{}
-	stubRepository := &order2.StubRepository{o: &m.Order{
+	stubKitchenService := stubs2.NewStubService()
+	expectedOrder := &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
-	}}
+	}
+	stubRepository := stubs2.NewStubRepositoryWithOrder(expectedOrder)
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
 		Stack:          s,
@@ -178,14 +180,15 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := &order2.StubService{}
-	stubRepository := &order2.StubRepository{o: &m.Order{
+	stubKitchenService := stubs2.NewStubService()
+	expectedOrder := &m.Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
 		Status:      m.Requested,
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
-	}}
+	}
+	stubRepository := stubs2.NewStubRepositoryWithOrder(expectedOrder)
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
 		Stack:          s,

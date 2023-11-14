@@ -7,9 +7,9 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
-	"mc-burger-orders/order"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
+	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
 )
 
@@ -53,8 +53,8 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder(), methodCalled: make([]map[string]any, 0)}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -125,8 +125,8 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder(), methodCalled: make([]map[string]any, 0)}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -185,8 +185,8 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder(), methodCalled: make([]map[string]any, 0)}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -232,8 +232,8 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	s := stack.NewStack(stack.CleanStack())
 	message := givenKafkaMessage(t, make([]map[string]any, 0))
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder()}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -271,8 +271,8 @@ func shouldFailWhenMessageKeyMissingOrderNumber(t *testing.T) {
 		Value: b,
 	}
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder()}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -310,8 +310,8 @@ func shouldFailWhenMessageKeyHasInvalidOrderNumber(t *testing.T) {
 		Value: b,
 	}
 
-	kitchenService := &order.StubService{}
-	repositoryStub := &order.StubRepository{o: givenExistingOrder()}
+	kitchenService := stubs2.NewStubService()
+	repositoryStub := stubs2.NewStubRepositoryWithOrder(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,

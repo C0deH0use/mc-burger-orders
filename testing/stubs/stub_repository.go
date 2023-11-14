@@ -1,4 +1,4 @@
-package order
+package stubs
 
 import (
 	"context"
@@ -11,6 +11,18 @@ type StubRepository struct {
 	nextNumber   int64
 	err          error
 	methodCalled []map[string]interface{}
+}
+
+func NewStubRepository() *StubRepository {
+	return &StubRepository{}
+}
+
+func NewStubRepositoryWithOrder(order *m.Order) *StubRepository {
+	return &StubRepository{o: order}
+}
+
+func NewStubRepositoryWithNextNumber(nextNumber int64) *StubRepository {
+	return &StubRepository{nextNumber: nextNumber}
 }
 
 func (s *StubRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {

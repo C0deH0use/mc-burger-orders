@@ -10,7 +10,8 @@ import (
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
-	"mc-burger-orders/utils"
+	"mc-burger-orders/testing/stubs"
+	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -74,8 +75,8 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &StubRepository{}
-	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
@@ -120,8 +121,8 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &StubRepository{}
-	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
@@ -164,8 +165,8 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &StubRepository{}
-	orderNumberRepository := &StubRepository{nextNumber: expectedOrderNumber}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),

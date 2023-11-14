@@ -9,7 +9,7 @@ import (
 	"math/rand"
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
-	"mc-burger-orders/utils"
+	"mc-burger-orders/testing/utils"
 	"strconv"
 	"sync"
 	"testing"

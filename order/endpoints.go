@@ -14,7 +14,7 @@ import (
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
-	"mc-burger-orders/utils"
+	"mc-burger-orders/testing/utils"
 	"net/http"
 )
 

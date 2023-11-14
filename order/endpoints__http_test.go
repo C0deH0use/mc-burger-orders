@@ -18,7 +18,7 @@ import (
 	s "mc-burger-orders/order/dto"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
-	"mc-burger-orders/utils"
+	utils2 "mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,8 +37,8 @@ var (
 
 func TestOrderHttpEndpoints(t *testing.T) {
 	ctx := context.Background()
-	mongoContainer = utils.TestWithMongo(ctx)
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	mongoContainer = utils2.TestWithMongo(ctx)
+	kafkaContainer, brokers := utils2.TestWithKafka(ctx)
 	kafkaConfig = &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
@@ -46,7 +46,7 @@ func TestOrderHttpEndpoints(t *testing.T) {
 		ReplicationFactor: 1,
 		AutoCreateTopic:   true,
 	}
-	database = utils.GetMongoDbFrom(mongoContainer)
+	database = utils2.GetMongoDbFrom(mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
@@ -54,8 +54,8 @@ func TestOrderHttpEndpoints(t *testing.T) {
 
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
-		utils.TerminateMongo(mongoContainer)
-		utils.TerminateKafka(kafkaContainer)
+		utils2.TerminateMongo(mongoContainer)
+		utils2.TerminateKafka(kafkaContainer)
 	})
 }
 
@@ -66,11 +66,11 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 		m.Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: m.InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
-	utils.DeleteMany(collectionDb, bson.D{})
-	utils.InsertMany(collectionDb, expectedOrders)
+	utils2.DeleteMany(collectionDb, bson.D{})
+	utils2.InsertMany(collectionDb, expectedOrders)
 
 	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
-	engine := utils.SetUpRouter(endpoints.Setup)
+	engine := utils2.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
 	resp := httptest.NewRecorder()
@@ -96,8 +96,8 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	assert.Equal(t, "READY", orderOne["status"])
 
 	defer func() {
-		utils.DeleteMany(collectionDb, bson.D{})
-		utils.DeleteMany(orderNumberCollectionDb, bson.D{})
+		utils2.DeleteMany(collectionDb, bson.D{})
+		utils2.DeleteMany(orderNumberCollectionDb, bson.D{})
 	}()
 }
 
@@ -148,7 +148,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	repository := m.NewRepository(database)
 
 	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
-	engine := utils.SetUpRouter(endpoints.Setup)
+	engine := utils2.SetUpRouter(endpoints.Setup)
 
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   kafkaConfig.Brokers,
@@ -219,8 +219,8 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	assert.Equal(t, expectedMessages, actualMessages)
 
 	defer func() {
-		utils.TerminateKafkaReader(testReader)
-		utils.DeleteMany(collectionDb, bson.D{})
-		utils.DeleteMany(orderNumberCollectionDb, bson.D{})
+		utils2.TerminateKafkaReader(testReader)
+		utils2.DeleteMany(collectionDb, bson.D{})
+		utils2.DeleteMany(orderNumberCollectionDb, bson.D{})
 	}()
 }

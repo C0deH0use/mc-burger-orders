@@ -1,4 +1,4 @@
-package order
+package stubs
 
 import (
 	"context"
@@ -10,6 +10,18 @@ type StubService struct {
 	o            *m.Order
 	err          error
 	methodCalled []map[string]interface{}
+}
+
+func NewStubService() *StubService {
+	return &StubService{methodCalled: make([]map[string]any, 0)}
+}
+
+func NewStubServiceWithOrder(order *m.Order) *StubService {
+	return &StubService{o: order, err: nil, methodCalled: make([]map[string]any, 0)}
+}
+
+func NewStubServiceWithErr(err error) *StubService {
+	return &StubService{err: err, methodCalled: make([]map[string]any, 0)}
 }
 
 func (s *StubService) CalledCnt() int {

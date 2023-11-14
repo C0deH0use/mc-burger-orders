@@ -44,8 +44,8 @@ func NewRepository(database *mongo.Database) *OrderRepositoryImpl {
 func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
 	order.ModifiedAt = time.Now()
 	log.Info.Printf("Updating existing Order Number: %v", order.OrderNumber)
-	filterDef := bson.D{{"orderNumber", order.OrderNumber}}
-	updateDef := bson.D{{"$set", order}}
+	filterDef := bson.D{{Key: "orderNumber", Value: order.OrderNumber}}
+	updateDef := bson.D{{Key: "$set", Value: order}}
 	upsertOption := true
 	updateOptions := &options.UpdateOptions{
 		Upsert: &upsertOption,
@@ -61,7 +61,7 @@ func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (
 }
 
 func (r *OrderRepositoryImpl) FetchById(ctx context.Context, id interface{}) (*Order, error) {
-	filter := bson.D{{"_id", id}}
+	filter := bson.D{{Key: "_id", Value: id}}
 	result := r.c.FindOne(ctx, filter)
 	if result.Err() != nil {
 		log.Error.Println("Error when fetching order by id", id, result.Err())
@@ -78,7 +78,7 @@ func (r *OrderRepositoryImpl) FetchById(ctx context.Context, id interface{}) (*O
 }
 
 func (r *OrderRepositoryImpl) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*Order, error) {
-	filter := bson.D{{"orderNumber", orderNumber}}
+	filter := bson.D{{Key: "orderNumber", Value: orderNumber}}
 	result := r.c.FindOne(ctx, filter)
 	if result.Err() != nil {
 		log.Error.Println("Error when fetching order by orderNumber", orderNumber, result.Err())

@@ -12,7 +12,7 @@ type Order struct {
 	CustomerId  int                 `json:"customerId" bson:"customerId"`
 	Items       []item.Item         `json:"items" bson:"items"`
 	PackedItems []item.Item         `json:"packedItems" bson:"packedItems"`
-	Status      OrderStatus         `json:"status" bson:"status" bson:"status"`
+	Status      OrderStatus         `json:"status" bson:"status"`
 	CreatedAt   time.Time           `json:"createdAt" bson:"createdAt"`
 	ModifiedAt  time.Time           `json:"modifiedAt" bson:"modifiedAt"`
 }

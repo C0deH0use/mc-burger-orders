@@ -26,6 +26,7 @@ func NewCommandHandler() *DefaultCommandHandler {
 func (o *DefaultCommandHandler) AddCommands(event string, commands ...Command) {
 	if storedCommands, ok := o.eventHandlers[event]; ok {
 		storedCommands = append(storedCommands, commands...)
+		o.eventHandlers[event] = storedCommands
 		return
 	}
 	o.eventHandlers[event] = commands

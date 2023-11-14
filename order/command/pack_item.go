@@ -45,7 +45,7 @@ func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if stackMessage == nil || len(stackMessage) == 0 {
+	if len(stackMessage) == 0 {
 		err := fmt.Errorf("event message is nil or empty")
 		return false, err
 	}

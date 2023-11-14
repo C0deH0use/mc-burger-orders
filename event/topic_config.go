@@ -24,6 +24,9 @@ func (c *TopicConfigs) ConnectToBroker() *kafka.Conn {
 	}
 	log.Warning.Println("Successfully dialed into broker", brokerAddress)
 	controller, err := conn.Controller()
+	if err != nil {
+		log.Error.Fatal("failed to connect to leading controller:", err)
+	}
 	controllerAddress := fmt.Sprintf("%s:%d", controller.Host, controller.Port)
 
 	if brokerAddress != controllerAddress {

@@ -1,0 +1,7 @@
+issues:
+  exclude-rules:
+    - path: 'stack/reader_test.go'
+      linters:
+        - ineffassign
+
+go: '1.21'

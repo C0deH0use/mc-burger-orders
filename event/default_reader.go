@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
+	"time"
 )
 
 type NewMessageHandler interface {
@@ -42,6 +43,7 @@ func (r *DefaultReader) SubscribeToTopic(stackMessages chan kafka.Message) {
 
 		for {
 			r.ReadMessageFromTopic(context.Background(), stackMessages)
+			time.Sleep(10 * time.Second)
 		}
 	}()
 	go func() {

@@ -2,7 +2,6 @@ package order
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +10,8 @@ import (
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
-	"mc-burger-orders/utils"
+	"mc-burger-orders/testing/stubs"
+	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,20 +22,15 @@ type FakeOrderEndpoints struct {
 	repository     m.OrderRepository
 	queryService   m.OrderQueryService
 	kitchenService service.KitchenRequestService
-	handler        *FakeCommandHandler
+	dispatcher     *FakeCommandDispatcher
 }
 
-type FakeCommandHandler struct {
+type FakeCommandDispatcher struct {
 	result       bool
 	methodCalled bool
 }
 
-type FakeRepository struct {
-	orders       []*m.Order
-	methodCalled bool
-}
-
-func (e *FakeCommandHandler) Execute(c command2.Command) (bool, error) {
+func (e *FakeCommandDispatcher) Execute(c command2.Command) (bool, error) {
 	e.methodCalled = true
 	return e.result, nil
 }
@@ -46,30 +41,8 @@ func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {
 		queryService:    f.queryService,
 		orderRepository: f.repository,
 		kitchenService:  f.kitchenService,
-		commandHandler:  f.handler,
+		dispatcher:      f.dispatcher,
 	}
-}
-
-func (e *FakeRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {
-	e.methodCalled = true
-	return e.orders[0], nil
-}
-
-func (e *FakeRepository) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
-	e.methodCalled = true
-	return e.orders[0], nil
-}
-func (e *FakeRepository) FetchMany(ctx context.Context) ([]m.Order, error) {
-	e.methodCalled = true
-	orders := make([]m.Order, len(e.orders))
-	for _, valPointer := range e.orders {
-		orders = append(orders, *valPointer)
-	}
-	return orders, nil
-}
-
-func (e *FakeRepository) GetNext(ctx context.Context) (int64, error) {
-	return expectedOrderNumber, nil
 }
 
 var expectedOrderNumber = int64(10)
@@ -102,15 +75,15 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{result: true},
+		dispatcher:     &FakeCommandDispatcher{result: true},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -136,7 +109,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	assert.Equal(t, expectedOrderNumber, actualOrderNumber)
 
 	// and
-	assert.True(t, fakeEndpoints.handler.methodCalled)
+	assert.True(t, fakeEndpoints.dispatcher.methodCalled)
 }
 
 func shouldReturnBadRequestWhenNoItems(t *testing.T) {
@@ -148,15 +121,15 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{},
+		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -177,7 +150,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	assert.Equal(t, "Schema Error. Key: 'NewOrder.Items' Error:Field validation for 'Items' failed on the 'required' tag", payload["errorMessage"])
 
 	// and
-	assert.False(t, fakeEndpoints.handler.methodCalled)
+	assert.False(t, fakeEndpoints.dispatcher.methodCalled)
 }
 
 func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
@@ -192,15 +165,15 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := &FakeRepository{}
-	orderNumberRepository := &FakeRepository{}
+	repository := stubs.NewStubRepository()
+	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewStack(stack.CleanStack()),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
-		handler:        &FakeCommandHandler{},
+		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -221,5 +194,5 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	assert.Equal(t, "Schema Error. Key: 'NewOrder.Items' Error:Field validation for 'Items' failed on the 'gt' tag", payload["errorMessage"])
 
 	// and
-	assert.False(t, fakeEndpoints.handler.methodCalled)
+	assert.False(t, fakeEndpoints.dispatcher.methodCalled)
 }

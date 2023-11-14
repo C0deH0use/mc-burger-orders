@@ -3,9 +3,13 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	"mc-burger-orders/utils"
+	"math/rand"
+	"mc-burger-orders/event"
+	"mc-burger-orders/order/dto"
+	"mc-burger-orders/testing/utils"
 	"strconv"
 	"testing"
 	"time"
@@ -15,23 +19,20 @@ var (
 	sut        *KitchenService
 	ctx        context.Context
 	testReader *kafka.Reader
-	topic      = "test-kitchen-requests"
+	topic      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
 func TestKitchenService_RequestForOrder(t *testing.T) {
 	ctx = context.Background()
-	kafkaContainer := utils.TestWithKafka(ctx)
-	brokers, err := kafkaContainer.Brokers(ctx)
-	if err != nil {
-		assert.Fail(t, "cannot read Brokers from kafka container")
-	}
-	kafkaConfig := KitchenServiceConfigs{
+	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	kafkaConfig := &event.TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
 		NumPartitions:     1,
 		ReplicationFactor: 1,
+		AutoCreateTopic:   true,
 	}
-	sut, _ = NewKitchenServiceFrom(kafkaConfig)
+	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   brokers,
 		Topic:     topic,
@@ -46,9 +47,9 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 	})
 
 	// Clean up the container after
-	defer func() {
+	t.Cleanup(func() {
 		utils.TerminateKafka(kafkaContainer)
-	}()
+	})
 }
 
 func shouldSendNewMessageToTopic(t *testing.T) {
@@ -65,7 +66,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 
 	// and
 	expectedHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
-	expectedMessage := NewKitchenRequestMessage(itemName, quantity)
+	expectedMessage := dto.NewKitchenRequestMessage(itemName, quantity)
 	message, err := testReader.ReadMessage(context.Background())
 
 	if err != nil {
@@ -77,7 +78,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	assert.Len(t, message.Headers, 1)
 	assert.Equal(t, expectedHeader, message.Headers[0])
 
-	actualMessage := &KitchenRequestMessage{}
+	actualMessage := &dto.KitchenRequestMessage{}
 	err = json.Unmarshal(message.Value, actualMessage)
 	if err != nil {
 		assert.Fail(t, "failed to unmarshal message on test Topic", err)

@@ -28,6 +28,9 @@ func CleanStack() map[string]int {
 func (s *Stack) Add(i string) {
 	s.kitchenStack[i] += 1
 }
+func (s *Stack) AddMany(i string, q int) {
+	s.kitchenStack[i] += q
+}
 
 func (s *Stack) GetCurrent(i string) int {
 	return s.kitchenStack[i]

@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	Info    *log.Logger = log.New(os.Stdin, "[INFO]", log.Ldate|log.Ltime|log.Lshortfile)
-	Warning *log.Logger = log.New(os.Stdin, "[WARNING]", log.Ldate|log.Ltime|log.Lshortfile)
-	Error   *log.Logger = log.New(os.Stderr, "[ERROR]", log.Ldate|log.Ltime|log.Lshortfile)
+	Info    *log.Logger = log.New(os.Stderr, " [INFO] ", log.LstdFlags|log.Lmsgprefix)
+	Warning *log.Logger = log.New(os.Stderr, " [WARNING] ", log.LstdFlags|log.Lmsgprefix)
+	Error   *log.Logger = log.New(os.Stderr, " [ERROR] ", log.LstdFlags|log.Lmsgprefix)
 )

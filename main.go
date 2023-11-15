@@ -4,9 +4,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
+	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
-	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
 )
 import "github.com/gin-gonic/gin"
@@ -15,14 +15,16 @@ import "mc-burger-orders/order"
 func main() {
 	loadEnv()
 	mongoDb := middleware.GetMongoClient()
-	kitchenStack := stack.NewStack(stack.CleanStack())
-	stackTopicConfigs := stack.TopicConfigsFromEnv()
-	kitchenTopicConfigs := service.KitchenTopicConfigsFromEnv()
+	kitchenStack := stack.NewEmptyStack()
 	eventBus := event.NewInternalEventBus()
+	stackTopicConfigs := stack.TopicConfigsFromEnv()
+	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
 
-	orderCommandsHandler := order.NewOrderCommandHandler(mongoDb, kitchenTopicConfigs, kitchenStack)
-	stackMessages := make(chan kafka.Message)
+	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, kitchenStack)
+
+	kitchenTopicReader := event.NewTopicReader(kitchenTopicConfigs, eventBus)
+	kitchenEventsHandler := kitchen.NewHandler(kitchenTopicConfigs, stackTopicConfigs, kitchenStack)
 
 	r := gin.Default()
 	r.ForwardedByClientIP = true
@@ -44,7 +46,10 @@ func main() {
 		log.Error.Panicf("error when starting REST service. Reason: %s", err)
 	}
 
-	stackTopicReader.SubscribeToTopic(stackMessages)
+	stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
+	kitchenMessages := make(chan kafka.Message)
+	kitchenEventsHandler.AwaitOn(kitchenMessages)
+	kitchenTopicReader.SubscribeToTopic(kitchenMessages)
 
 }
 

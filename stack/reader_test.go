@@ -33,6 +33,10 @@ func (s *StubCommand) Execute(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
+	return int64(1010), nil
+}
+
 func TestStackReader(t *testing.T) {
 	ctx := context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
@@ -70,7 +74,7 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 
 	// when
 	log.Println("Preparing to send test messages to topic", kafkaConfig.Topic)
-	for _, msgId := range []int{1, 2, 3, 4, 5, 6} {
+	for msgId := range make([]int, 6) {
 		go sendMessages(t, msgId)
 	}
 

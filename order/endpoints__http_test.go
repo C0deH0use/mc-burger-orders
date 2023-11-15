@@ -69,7 +69,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(collectionDb, bson.D{})
 	utils.InsertMany(collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewEmptyStack())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -147,7 +147,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 
 	repository := m.NewRepository(database)
 
-	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewStack(stack.CleanStack()))
+	endpoints := NewOrderEndpoints(database, kafkaConfig, stack.NewEmptyStack())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	testReader = kafka.NewReader(kafka.ReaderConfig{

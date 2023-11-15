@@ -3,7 +3,6 @@ package order
 import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
-	"github.com/spf13/cast"
 	"go.mongodb.org/mongo-driver/mongo"
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
@@ -11,7 +10,9 @@ import (
 	c "mc-burger-orders/order/command"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
+	"mc-burger-orders/order/utils"
 	"mc-burger-orders/stack"
+	utils2 "mc-burger-orders/utils"
 )
 
 type CommandsHandler struct {
@@ -22,7 +23,7 @@ type CommandsHandler struct {
 	kitchenService service.KitchenRequestService
 }
 
-func NewOrderCommandHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *CommandsHandler {
+func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *CommandsHandler {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
@@ -37,16 +38,19 @@ func NewOrderCommandHandler(database *mongo.Database, kitchenTopicConfigs *event
 }
 
 func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command, error) {
-	var orderNumber int64
-	for _, header := range message.Headers {
-		if header.Key == "order" {
-			orderNumberStr := string(header.Value)
-			orderNumber = cast.ToInt64(orderNumberStr)
-		}
+	orderNumber, err := utils.GetOrderNumber(message)
+	if err != nil {
+		log.Error.Println(err.Error())
+		return nil, err
+	}
+
+	eventType, err := utils2.GetEventType(message)
+	if err != nil {
+		log.Error.Println(err.Error())
+		return nil, err
 	}
 
 	commands := make([]command.Command, 0)
-	eventType := message.Topic
 	switch eventType {
 	case stack.ItemAddedToStackEvent:
 		{

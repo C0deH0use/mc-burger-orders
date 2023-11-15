@@ -37,17 +37,17 @@ func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultRead
 	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
 }
 
-func (r *DefaultReader) SubscribeToTopic(stackMessages chan kafka.Message) {
+func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 	go func() {
 		log.Info.Println("Subscribing to topic", r.configuration.Topic)
 
 		for {
-			r.ReadMessageFromTopic(context.Background(), stackMessages)
+			r.ReadMessageFromTopic(context.Background(), msgChan)
 			time.Sleep(10 * time.Second)
 		}
 	}()
 	go func() {
-		for newMessage := range stackMessages {
+		for newMessage := range msgChan {
 			go func(message kafka.Message) {
 				r.OnNewMessage(message)
 			}(newMessage)

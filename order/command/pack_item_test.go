@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/segmentio/kafka-go"
+	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/item"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
+	"time"
 )
 
 var (
@@ -32,14 +34,14 @@ func TestPackItemCommand_Execute(t *testing.T) {
 	t.Run("should add new items added to stack when command executed", shouldPackItemPointedInMessage)
 	t.Run("should set to READY when all items are packed", shouldFinishPackingOrderWhenLastItemsCameFromKitchen)
 	t.Run("should pack available items and request new when not all items are available", shouldRequestAdditionalItemWhenMoreAreNeeded)
-	t.Run("should fail when message key is missing order number", shouldFailWhenMessageKeyMissingOrderNumber)
-	t.Run("should fail when message key has invalid order number", shouldFailWhenMessageKeyHasInvalidOrderNumber)
+	t.Run("should fail when message headers are missing order number", shouldFailWhenMessageHeadersMissingOrderNumber)
+	t.Run("should fail when message headers has invalid order number", shouldFailWhenMessageHeadersHasInvalidOrderNumber)
 	t.Run("should fail when message value is empty", shouldFailWhenMessageValueIsEmpty)
 }
 
 func shouldPackItemPointedInMessage(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
+	s := stack.NewEmptyStack()
 	s.AddMany(hamburger, 3)
 	s.AddMany(cheeseburger, 2)
 	s.AddMany(mcSpicy, 4)
@@ -103,7 +105,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
+	s := stack.NewEmptyStack()
 	s.AddMany(hamburger, 3)
 	s.AddMany(cheeseburger, 2)
 	s.AddMany(mcSpicy, 4)
@@ -177,7 +179,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
+	s := stack.NewEmptyStack()
 	s.AddMany(spicyStripes, 3)
 	s.AddMany(cheeseburger, 2)
 
@@ -233,7 +235,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
+	s := stack.NewEmptyStack()
 	message := givenKafkaMessage(t, make([]map[string]any, 0))
 
 	kitchenService := stubs2.NewStubService()
@@ -261,18 +263,19 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
 }
 
-func shouldFailWhenMessageKeyMissingOrderNumber(t *testing.T) {
+func shouldFailWhenMessageHeadersMissingOrderNumber(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
-	b, err := json.Marshal(make([]map[string]any, 0))
-	if err != nil {
-		assert.Fail(t, "Could not marshal Kafka message", err)
-	}
+	s := stack.NewEmptyStack()
+	b, _ := json.Marshal(make([]map[string]any, 0))
+
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte("item-added-to-stack")})
 
 	message := kafka.Message{
-		Topic: "item-added-to-stack",
-		Key:   []byte("12131"),
-		Value: b,
+		Headers: headers,
+		Topic:   "some-kafka-topic",
+		Key:     []byte(cast.ToString(time.Now().UnixNano())),
+		Value:   b,
 	}
 
 	kitchenService := stubs2.NewStubService()
@@ -290,7 +293,7 @@ func shouldFailWhenMessageKeyMissingOrderNumber(t *testing.T) {
 
 	// then
 	assert.False(t, result)
-	assert.Equal(t, "cannot extract prefix from message key - `12131`", err.Error())
+	assert.Equal(t, "cannot find order number in message headers", err.Error())
 
 	// and
 	assert.Equal(t, 0, repositoryStub.CalledCnt(), "Order Repository have not been called")
@@ -300,18 +303,20 @@ func shouldFailWhenMessageKeyMissingOrderNumber(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
 }
 
-func shouldFailWhenMessageKeyHasInvalidOrderNumber(t *testing.T) {
+func shouldFailWhenMessageHeadersHasInvalidOrderNumber(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
-	b, err := json.Marshal(make([]map[string]any, 0))
-	if err != nil {
-		assert.Fail(t, "Could not marshal Kafka message", err)
-	}
+	s := stack.NewEmptyStack()
+	b, _ := json.Marshal(make([]map[string]any, 0))
+
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, kafka.Header{Key: "order", Value: []byte("`1212")})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte("item-added-to-stack")})
 
 	message := kafka.Message{
-		Topic: "item-added-to-stack",
-		Key:   []byte("order-`1212"),
-		Value: b,
+		Headers: headers,
+		Topic:   "some-kafka-topic",
+		Key:     []byte(cast.ToString(time.Now().UnixNano())),
+		Value:   b,
 	}
 
 	kitchenService := stubs2.NewStubService()
@@ -357,11 +362,15 @@ func givenKafkaMessage(t *testing.T, messageValue []map[string]any) kafka.Messag
 	if err != nil {
 		assert.Fail(t, "Could not marshal Kafka message", err)
 	}
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, kafka.Header{Key: "order", Value: []byte(cast.ToString(expectedOrderNumber))})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte("item-added-to-stack")})
 
 	message := kafka.Message{
-		Topic: "item-added-to-stack",
-		Key:   []byte(fmt.Sprintf("order-%d", expectedOrderNumber)),
-		Value: b,
+		Headers: headers,
+		Topic:   "some-kafka-topic",
+		Key:     []byte(fmt.Sprintf("%d", time.Now().UnixNano())),
+		Value:   b,
 	}
 	return message
 }

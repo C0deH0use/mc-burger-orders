@@ -4,10 +4,12 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/command"
 	"mc-burger-orders/log"
+	"mc-burger-orders/utils"
 	"reflect"
 )
 
 type InternalEventBus struct {
+	command.DefaultCommandHandler
 	eventHandlers map[string]map[command.Handler]struct{}
 }
 
@@ -19,7 +21,12 @@ func NewInternalEventBus() *InternalEventBus {
 
 // PublishEvent publishes events to all registered event handlers
 func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
-	eventType := message.Topic
+	eventType, err := utils.GetEventType(message)
+	if err != nil {
+		log.Error.Println(err.Error())
+		return err
+	}
+
 	if handlers, ok := b.eventHandlers[eventType]; ok {
 		for handler := range handlers {
 			result, err := handler.Handle(message)

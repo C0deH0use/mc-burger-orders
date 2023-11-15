@@ -9,12 +9,9 @@ import (
 	"mc-burger-orders/order/dto"
 	om "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
+	"mc-burger-orders/order/utils"
 	"mc-burger-orders/stack"
-	"strconv"
-	"strings"
 )
-
-var orderKeyPrefix = "order-"
 
 type PackItemCommand struct {
 	Repository     om.OrderRepository
@@ -24,7 +21,7 @@ type PackItemCommand struct {
 }
 
 func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
-	orderNumber, err := p.OrderNumber()
+	orderNumber, err := utils.GetOrderNumber(p.Message)
 	if err != nil {
 		log.Error.Println("could not find order number from message", err)
 		return false, err
@@ -85,22 +82,6 @@ func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (p *PackItemCommand) OrderNumber() (int64, error) {
-	msgKey := string(p.Message.Key)
-	orderNumberStr, ok := strings.CutPrefix(msgKey, orderKeyPrefix)
-	if !ok {
-		err := fmt.Errorf("cannot extract prefix from message key - `%v`", msgKey)
-		return -1, err
-	}
-
-	orderNumber, err := strconv.ParseInt(orderNumberStr, 10, 64)
-	if err != nil {
-		err := fmt.Errorf("cannot parse order number '%v' to int64. %v", orderNumberStr, err)
-		return -1, err
-	}
-	return orderNumber, nil
 }
 
 func getOrderQuantityForItem(o *om.Order, itemName string) (int, error) {

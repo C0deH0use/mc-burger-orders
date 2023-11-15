@@ -165,7 +165,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	// given
-	s := stack.NewStack(stack.CleanStack())
+	s := stack.NewEmptyStack()
 	expectedOrderNumber := int64(1010)
 	newOrder := m.NewOrder{
 		CustomerId: 10,

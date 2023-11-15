@@ -12,6 +12,10 @@ func NewStack(ks map[string]int) *Stack {
 	return &Stack{kitchenStack: ks}
 }
 
+func NewEmptyStack() *Stack {
+	return &Stack{kitchenStack: CleanStack()}
+}
+
 func CleanStack() map[string]int {
 	return map[string]int{
 		"hamburger":       0,

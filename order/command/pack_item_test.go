@@ -230,7 +230,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, kitchenService.CalledCnt(), "No items have not been requested")
-	assert.True(t, kitchenService.HaveBeenCalledWith(spicyStripes, 3, expectedOrderNumber))
+	assert.True(t, kitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc(spicyStripes, 3, expectedOrderNumber)))
 }
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {

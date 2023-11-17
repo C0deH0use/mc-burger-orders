@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
+	"strconv"
 )
 
 func GetEventType(message kafka.Message) (string, error) {
@@ -13,4 +14,12 @@ func GetEventType(message kafka.Message) (string, error) {
 	}
 	err := fmt.Errorf("count not find event header in messgae")
 	return "", err
+}
+
+func OrderHeader(orderNumber int64) kafka.Header {
+	return kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
+}
+
+func EventTypeHeader(eventType string) kafka.Header {
+	return kafka.Header{Key: "event", Value: []byte(eventType)}
 }

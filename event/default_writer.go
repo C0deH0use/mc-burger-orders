@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type Writer interface {
+	SendMessage(rootCtx context.Context, messages ...kafka.Message) error
+}
+
 type DefaultWriter struct {
 	conn          *kafka.Conn
 	configuration *TopicConfigs
@@ -40,7 +44,6 @@ func (d *DefaultWriter) SendMessage(rootCtx context.Context, messages ...kafka.M
 	writer := d.initializeWriter()
 	var err error
 	const retries = 4
-	log.Warning.Println("Attempt to send", len(messages), "message(s)")
 	for i := 1; i < retries; i++ {
 		ctx, cancel := context.WithTimeout(rootCtx, 10*time.Second)
 		defer cancel()

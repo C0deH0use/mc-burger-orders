@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"mc-burger-orders/event"
 	stack2 "mc-burger-orders/stack"
+	"mc-burger-orders/testing/data"
 	"mc-burger-orders/testing/utils"
 	"strconv"
 	"testing"
@@ -35,6 +36,7 @@ func TestCommandsHandler_WithKafkaMessages(t *testing.T) {
 		ReplicationFactor: 1,
 		AutoCreateTopic:   true,
 	}
+	eventBus = event.NewInternalEventBus()
 
 	t.Run("should submit new request to worker when message arrives", shouldSubmitItemRequestToWorkerWhenMessageArrives)
 
@@ -48,30 +50,46 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	// given
 	msgChan := make(chan kafka.Message)
 	msg := make([]map[string]any, 0)
-	msg = append(msg, map[string]any{
-		"itemName": "hamburger",
-		"quantity": 2,
-	})
+	msg = data.AppendHamburgerItem(msg, 1)
+
+	msg2 := make([]map[string]any, 0)
+	msg2 = data.AppendSpicyStripesItem(msg2, 1)
 
 	for range make([]int, 10) {
 		go sendMessages(t, msg)
+		go sendMessages(t, msg2)
 	}
 
 	commandHandler := NewHandler(kafkaConfig, kafkaConfig, testStack)
-	go commandHandler.AwaitOn(msgChan)
+	eventBus.AddHandler(commandHandler, RequestItemEvent)
 
 	// when
 	reader := event.NewTopicReader(kafkaConfig, eventBus)
-	reader.SubscribeToTopic(msgChan)
+	go reader.SubscribeToTopic(msgChan)
 
 	// then
+	cnt := 0
 	for {
-		currentHamburgers := testStack.GetCurrent("hamburger")
-
-		if currentHamburgers >= 10 {
-			return
+		select {
+		case <-time.After(5 * time.Second):
+			if assertExpectedItemsCreated() {
+				return
+			}
+			log.Println("not all items created yet!")
+			cnt++
+			if cnt > 7 {
+				assert.Fail(t, "not all items created")
+				return
+			}
 		}
 	}
+}
+
+func assertExpectedItemsCreated() bool {
+	hamburgers := testStack.GetCurrent("hamburger")
+	spicyStripes := testStack.GetCurrent("spicy-stripes")
+	log.Printf("Hamburgers: %d || Spicy-stripes: %d", hamburgers, spicyStripes)
+	return 10 <= hamburgers && 20 <= spicyStripes
 }
 
 func sendMessages(t *testing.T, requestPayload []map[string]any) {
@@ -92,8 +110,6 @@ func sendMessages(t *testing.T, requestPayload []map[string]any) {
 	}
 
 	// when
-	log.Printf("Sending message on topic %v", kafkaConfig.Topic)
-
 	err := writer.SendMessage(context.Background(), msg)
 	if err != nil {
 		assert.Fail(t, "failed to send message to topic", kafkaConfig.Topic)

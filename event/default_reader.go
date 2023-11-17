@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
-	"time"
 )
 
 type NewMessageHandler interface {
@@ -20,6 +19,9 @@ type DefaultReader struct {
 }
 
 func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultReader {
+	if eventBus == nil {
+		log.Error.Panicln("missing event bus to communicate received messages")
+	}
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
@@ -43,16 +45,24 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 
 		for {
 			r.ReadMessageFromTopic(context.Background(), msgChan)
-			time.Sleep(10 * time.Second)
 		}
 	}()
+
 	go func() {
 		for newMessage := range msgChan {
-			go func(message kafka.Message) {
-				r.OnNewMessage(message)
-			}(newMessage)
+			log.Info.Println("PublishEvent")
+			go r.PublishEvent(newMessage)
 		}
 	}()
+}
+
+func (r *DefaultReader) PublishEvent(message kafka.Message) {
+	// TODO: is Message Already Ran
+	err := r.eventBus.PublishEvent(message)
+	if err != nil {
+		log.Error.Printf("failed to publish message on event bus: %v\n", err)
+		r.HandleError(err, message)
+	}
 }
 
 func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan kafka.Message) {
@@ -63,22 +73,7 @@ func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan k
 
 	log.Warning.Println("Received messaged for topic:", msg.Topic)
 	if msg.Topic == r.configuration.Topic {
-		msgKey := string(msg.Key)
-		msgValue := string(msg.Value)
-		log.Info.Println("Processing message with key: ", msgKey, "message: ", msgValue)
 		msgChan <- msg
-	}
-}
-
-func (r *DefaultReader) OnNewMessage(message kafka.Message) {
-	messageKey := string(message.Key)
-	messageValue := string(message.Value)
-	log.Warning.Printf("New message read from topic (%v) arrived, key: %v message value: %v\n", message.Topic, messageKey, messageValue)
-
-	err := r.eventBus.PublishEvent(message)
-	if err != nil {
-		log.Error.Printf("failed to publish message on event bus: %v\n", err)
-		r.HandleError(err, message)
 	}
 }
 

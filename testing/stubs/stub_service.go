@@ -2,8 +2,11 @@ package stubs
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/segmentio/kafka-go"
 	"log"
 	m "mc-burger-orders/order/model"
+	"mc-burger-orders/order/utils"
 )
 
 type StubService struct {
@@ -28,15 +31,63 @@ func (s *StubService) CalledCnt() int {
 	return len(s.methodCalled)
 }
 
-func (s *StubService) HaveBeenCalledWith(itemName string, quantity int, orderNumber int64) bool {
-	r := false
-
-	for _, args := range s.methodCalled {
+func RequestMatchingFnc(itemName string, quantity int, orderNumber int64) func(args map[string]any) bool {
+	return func(args map[string]any) bool {
 		argName := args["itemName"]
 		argQuantity := args["quantity"]
 		argNumber := args["orderNumber"]
 		log.Printf("StubService methodCalled. %+v", args)
-		if argName == itemName && argQuantity == quantity && argNumber == orderNumber {
+		return argName == itemName && argQuantity == quantity && argNumber == orderNumber
+	}
+}
+
+func MealPrepMatchingFnc(itemName string, quantity int) func(args map[string]any) bool {
+	return func(args map[string]any) bool {
+		argName := args["itemName"]
+		argQuantity := args["quantity"]
+		log.Printf("StubService methodCalled. %+v", args)
+		return argName == itemName && argQuantity == quantity
+	}
+}
+
+func KafkaMessageMatchingFnc(orderNumber int64, messageVal map[string]any) func(args map[string]any) bool {
+	if b, err := json.Marshal(messageVal); err == nil {
+
+		expectedMessageValue := string(b)
+		return func(args map[string]any) bool {
+			if sendMessageArg, ok := args["SendMessage"]; ok {
+				messages := sendMessageArg.([]kafka.Message)
+
+				for _, kafkaMsg := range messages {
+					number, err := utils.GetOrderNumber(kafkaMsg)
+					if orderNumber == -1 && err != nil {
+						if string(kafkaMsg.Value) == expectedMessageValue {
+							return true
+						}
+					}
+					if orderNumber > 0 && err != nil {
+						return false
+					}
+
+					if number == orderNumber && string(kafkaMsg.Value) == expectedMessageValue {
+						return true
+					}
+				}
+				return false
+			}
+			return false
+		}
+	}
+	return func(args map[string]any) bool {
+		return false
+	}
+}
+
+func (s *StubService) HaveBeenCalledWith(matchingFnc func(args map[string]any) bool) bool {
+	r := false
+
+	for _, args := range s.methodCalled {
+		if matchingFnc(args) {
 			r = true
 		}
 	}
@@ -52,4 +103,20 @@ func (s *StubService) RequestForOrder(ctx context.Context, itemName string, quan
 	}
 	s.methodCalled = append(s.methodCalled, args)
 	return nil
+}
+
+func (s *StubService) SendMessage(ctx context.Context, messages ...kafka.Message) error {
+	args := map[string]interface{}{
+		"SendMessage": messages,
+	}
+	s.methodCalled = append(s.methodCalled, args)
+	return nil
+}
+
+func (s *StubService) Prepare(item string, quantity int) {
+	args := map[string]interface{}{
+		"itemName": item,
+		"quantity": quantity,
+	}
+	s.methodCalled = append(s.methodCalled, args)
 }

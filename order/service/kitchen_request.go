@@ -7,8 +7,10 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"mc-burger-orders/event"
+	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/order/dto"
+	"mc-burger-orders/utils"
 	"os"
 	"strconv"
 	"strings"
@@ -56,7 +58,8 @@ func NewKitchenServiceFrom(config *event.TopicConfigs) *KitchenService {
 
 func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, quantity int, orderNumber int64) error {
 	headers := make([]kafka.Header, 0)
-	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))})
+	headers = append(headers, utils.OrderHeader(orderNumber))
+	headers = append(headers, utils.EventTypeHeader(kitchen.RequestItemEvent))
 	message := dto.NewKitchenRequestMessage(itemName, quantity)
 	msgValue, err := json.Marshal(message)
 	if err != nil {

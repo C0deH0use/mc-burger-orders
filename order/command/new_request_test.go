@@ -12,10 +12,9 @@ import (
 
 func Test_CreateNewOrder(t *testing.T) {
 	// given
-	sk := stack.CleanStack()
-	sk["hamburger"] = 3
+	s := stack.NewEmptyStack()
+	s.AddMany("hamburger", 3)
 
-	s := stack.NewStack(sk)
 	expectedOrderNumber := int64(1010)
 
 	newOrder := m.NewOrder{
@@ -88,10 +87,9 @@ func Test_CreateNewOrder(t *testing.T) {
 
 func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	// given
-	sk := stack.CleanStack()
-	sk["hamburger"] = 1
+	s := stack.NewEmptyStack()
+	s.Add("hamburger")
 
-	s := stack.NewStack(sk)
 	expectedOrderNumber := int64(1010)
 
 	newOrder := m.NewOrder{
@@ -160,7 +158,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 1, expectedOrderNumber), "Kitchen Service called with Hamburger requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("hamburger", 1, expectedOrderNumber)), "Kitchen Service called with Hamburger requests")
 }
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
@@ -221,6 +219,6 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("hamburger", 2, expectedOrderNumber), "Kitchen Service called with Hamburger requests")
-	assert.True(t, stubKitchenService.HaveBeenCalledWith("fries", 1, expectedOrderNumber), "Kitchen Service called with Fries requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("hamburger", 2, expectedOrderNumber)), "Kitchen Service called with Hamburger requests")
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("fries", 1, expectedOrderNumber)), "Kitchen Service called with Fries requests")
 }

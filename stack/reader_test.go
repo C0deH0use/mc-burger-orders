@@ -95,8 +95,6 @@ func sendMessages(t *testing.T, msgId int) {
 	}
 
 	// when
-	log.Printf("Sending %d-th message on topic %v", msgId, kafkaConfig.Topic)
-
 	var s, err = time.ParseDuration(strconv.FormatInt(rand.Int63n(500), 10))
 	var randSleep = time.Millisecond * s
 

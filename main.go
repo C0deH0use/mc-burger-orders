@@ -35,6 +35,7 @@ func main() {
 	}
 
 	eventBus.AddHandler(orderCommandsHandler, stack.ItemAddedToStackEvent, order.CollectedEvent)
+	eventBus.AddHandler(kitchenEventsHandler, kitchen.RequestItemEvent)
 
 	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, kitchenStack)
 
@@ -46,10 +47,8 @@ func main() {
 		log.Error.Panicf("error when starting REST service. Reason: %s", err)
 	}
 
-	stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
-	kitchenMessages := make(chan kafka.Message)
-	kitchenEventsHandler.AwaitOn(kitchenMessages)
-	kitchenTopicReader.SubscribeToTopic(kitchenMessages)
+	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
+	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
 
 }
 

@@ -1,0 +1,163 @@
+package kitchen
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/gammazero/workerpool"
+	"github.com/segmentio/kafka-go"
+	"github.com/spf13/cast"
+	"github.com/stretchr/testify/assert"
+	"mc-burger-orders/event"
+	stack2 "mc-burger-orders/stack"
+	"mc-burger-orders/testing/data"
+	"mc-burger-orders/testing/stubs"
+	"testing"
+	"time"
+)
+
+var (
+	expectedOrderNumber = int64(1010)
+	testKafkaConfig     = testTopicConfigs()
+)
+
+func TestHandler_CreateNewItem(t *testing.T) {
+	t.Run("should create new items when valid requested in the message", shouldPrepareNewItemsWhenRequestedInTheMessage)
+	t.Run("should create new items when missing order in the message", shouldPrepareItemsWhenMessageMissingOrderNumber)
+	t.Run("should skip creation when no requests in the message", shouldSkipWhenMessageHasZeroRequests)
+}
+
+func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
+	// given
+	stack := stack2.NewEmptyStack()
+	stub := stubs.NewStubService()
+	prepMealStub := stubs.NewStubService()
+	handler := &Handler{
+		kitchenCooks:        workerpool.New(1),
+		mealPreparation:     prepMealStub,
+		stack:               stack,
+		stackMessageWriter:  stub,
+		kitchenTopicConfigs: testKafkaConfig,
+	}
+
+	messageValue := make([]map[string]any, 0)
+	messageValue = data.AppendHamburgerItem(messageValue, 1)
+	messageValue = data.AppendCheeseBurgerItem(messageValue, 2)
+
+	message := givenKafkaMessage(t, expectedOrderNumber, messageValue)
+
+	// when
+	result, err := handler.CreateNewItem(message)
+
+	// then
+	assert.True(t, result)
+	assert.Nil(t, err)
+
+	// and
+	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(expectedOrderNumber, map[string]any{
+		"itemName": "hamburger",
+		"quantity": 1,
+	})))
+	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(expectedOrderNumber, map[string]any{
+		"itemName": "cheeseburger",
+		"quantity": 2,
+	})))
+
+	// and
+	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
+}
+
+func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
+	// given
+	stack := stack2.NewEmptyStack()
+	stub := stubs.NewStubService()
+	prepMealStub := stubs.NewStubService()
+	handler := &Handler{
+		kitchenCooks:        workerpool.New(1),
+		mealPreparation:     prepMealStub,
+		stack:               stack,
+		stackMessageWriter:  stub,
+		kitchenTopicConfigs: testKafkaConfig,
+	}
+
+	messageValue := make([]map[string]any, 0)
+	messageValue = data.AppendHamburgerItem(messageValue, 1)
+	messageValue = data.AppendCheeseBurgerItem(messageValue, 2)
+
+	message := givenKafkaMessage(t, -1, messageValue)
+
+	// when
+	result, err := handler.CreateNewItem(message)
+
+	// then
+	assert.True(t, result)
+	assert.Nil(t, err)
+
+	// and
+	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(-1, map[string]any{
+		"itemName": "hamburger",
+		"quantity": 1,
+	})))
+	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(-1, map[string]any{
+		"itemName": "cheeseburger",
+		"quantity": 2,
+	})))
+
+	// and
+	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
+}
+
+func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
+	// given
+	stack := stack2.NewEmptyStack()
+	stub := stubs.NewStubService()
+	prepMealStub := stubs.NewStubService()
+	handler := &Handler{
+		kitchenCooks:        workerpool.New(1),
+		mealPreparation:     prepMealStub,
+		stack:               stack,
+		stackMessageWriter:  stub,
+		kitchenTopicConfigs: testKafkaConfig,
+	}
+
+	message := givenKafkaMessage(t, expectedOrderNumber, make([]map[string]any, 0))
+
+	// when
+	result, err := handler.CreateNewItem(message)
+
+	// then
+	assert.True(t, result)
+	assert.Nil(t, err)
+
+	// and
+	assert.Equal(t, 0, stub.CalledCnt())
+	assert.Equal(t, 0, prepMealStub.CalledCnt())
+}
+
+func testTopicConfigs() *event.TopicConfigs {
+	return &event.TopicConfigs{
+		Topic: "some-kafka-topic",
+	}
+}
+
+func givenKafkaMessage(t *testing.T, orderNumber int64, messageValue []map[string]any) kafka.Message {
+	b, err := json.Marshal(messageValue)
+	if err != nil {
+		assert.Fail(t, "Could not marshal Kafka message", err)
+	}
+	headers := make([]kafka.Header, 0)
+	if orderNumber > 0 {
+		headers = append(headers, kafka.Header{Key: "order", Value: []byte(cast.ToString(expectedOrderNumber))})
+	}
+
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte("request-item")})
+
+	message := kafka.Message{
+		Headers: headers,
+		Topic:   "some-kafka-topic",
+		Key:     []byte(fmt.Sprintf("%d", time.Now().UnixNano())),
+		Value:   b,
+	}
+	return message
+}

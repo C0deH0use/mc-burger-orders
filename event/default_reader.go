@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
-	"time"
+	"mc-burger-orders/utils"
 )
 
 type NewMessageHandler interface {
@@ -20,6 +20,9 @@ type DefaultReader struct {
 }
 
 func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultReader {
+	if eventBus == nil {
+		log.Error.Panicln("missing event bus to communicate received messages")
+	}
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
@@ -37,22 +40,29 @@ func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultRead
 	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
 }
 
-func (r *DefaultReader) SubscribeToTopic(stackMessages chan kafka.Message) {
+func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 	go func() {
 		log.Info.Println("Subscribing to topic", r.configuration.Topic)
 
 		for {
-			r.ReadMessageFromTopic(context.Background(), stackMessages)
-			time.Sleep(10 * time.Second)
+			go r.ReadMessageFromTopic(context.Background(), msgChan)
 		}
 	}()
+
 	go func() {
-		for newMessage := range stackMessages {
-			go func(message kafka.Message) {
-				r.OnNewMessage(message)
-			}(newMessage)
+		for newMessage := range msgChan {
+			go r.PublishEvent(newMessage)
 		}
 	}()
+}
+
+func (r *DefaultReader) PublishEvent(message kafka.Message) {
+	// TODO: is Message Already Ran
+	err := r.eventBus.PublishEvent(message)
+	if err != nil {
+		log.Error.Printf("failed to publish message on event bus: %v\n", err)
+		r.HandleError(err, message)
+	}
 }
 
 func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan kafka.Message) {
@@ -60,25 +70,14 @@ func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan k
 	if err != nil {
 		log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
 	}
-
-	log.Warning.Println("Received messaged for topic:", msg.Topic)
-	if msg.Topic == r.configuration.Topic {
-		msgKey := string(msg.Key)
-		msgValue := string(msg.Value)
-		log.Info.Println("Processing message with key: ", msgKey, "message: ", msgValue)
-		msgChan <- msg
-	}
-}
-
-func (r *DefaultReader) OnNewMessage(message kafka.Message) {
-	messageKey := string(message.Key)
-	messageValue := string(message.Value)
-	log.Warning.Printf("New message read from topic (%v) arrived, key: %v message value: %v\n", message.Topic, messageKey, messageValue)
-
-	err := r.eventBus.PublishEvent(message)
+	eventType, err := utils.GetEventType(msg)
 	if err != nil {
-		log.Error.Printf("failed to publish message on event bus: %v\n", err)
-		r.HandleError(err, message)
+		log.Error.Println("failed to read event type from message:", err)
+	}
+
+	log.Warning.Printf("Received messaged for topic: %v, event: %v", msg.Topic, eventType)
+	if msg.Topic == r.configuration.Topic {
+		msgChan <- msg
 	}
 }
 

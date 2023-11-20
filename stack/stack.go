@@ -2,47 +2,78 @@ package stack
 
 import (
 	"fmt"
+	"github.com/spf13/cast"
+	"mc-burger-orders/log"
+	"sync"
 )
 
 type Stack struct {
-	kitchenStack map[string]int
+	kitchenStack *sync.Map
 }
 
-func NewStack(ks map[string]int) *Stack {
+func NewStack(ks *sync.Map) *Stack {
 	return &Stack{kitchenStack: ks}
 }
 
-func CleanStack() map[string]int {
-	return map[string]int{
-		"hamburger":       0,
-		"cheeseburger":    0,
-		"double-cheese":   0,
-		"mc-chicken":      0,
-		"mr-chicken-wrap": 0,
-		"spicy-stripes":   0,
-		"hot-wings":       0,
-		"fries":           0,
-	}
+func NewEmptyStack() *Stack {
+	return &Stack{kitchenStack: CleanStack()}
+}
+
+func CleanStack() *sync.Map {
+	syncMap := &sync.Map{}
+	syncMap.Store("hamburger", 0)
+	syncMap.Store("cheeseburger", 0)
+	syncMap.Store("double-cheese", 0)
+	syncMap.Store("mc-chicken", 0)
+	syncMap.Store("mr-chicken-wrap", 0)
+	syncMap.Store("spicy-stripes", 0)
+	syncMap.Store("hot-wings", 0)
+	syncMap.Store("fries", 0)
+	return syncMap
 }
 
 func (s *Stack) Add(i string) {
-	s.kitchenStack[i] += 1
+	if value, ok := s.kitchenStack.Load(i); ok {
+		newVal := cast.ToInt(value) + 1
+		s.kitchenStack.Store(i, newVal)
+		log.Warning.Printf("Kitchen Stack| %v => %d", i, newVal)
+		return
+	}
+	s.kitchenStack.Store(i, 1)
+	log.Warning.Printf("Kitchen Stack| %v => %d", i, 1)
+
 }
 func (s *Stack) AddMany(i string, q int) {
-	s.kitchenStack[i] += q
+	if value, ok := s.kitchenStack.Load(i); ok {
+		newVal := cast.ToInt(value) + q
+		s.kitchenStack.Store(i, newVal)
+		log.Warning.Printf("Kitchen Stack| %v => %d", i, newVal)
+		return
+	}
+	s.kitchenStack.Store(i, q)
+	log.Warning.Printf("Kitchen Stack| %v => %d", i, q)
 }
 
 func (s *Stack) GetCurrent(i string) int {
-	return s.kitchenStack[i]
+	if value, ok := s.kitchenStack.Load(i); ok {
+		return cast.ToInt(value)
+	}
+	return 0
 }
 
 func (s *Stack) Take(i string, q int) error {
-	itemQuantity := s.kitchenStack[i]
-	if itemQuantity < q {
-		err := fmt.Errorf("not enought in Stack of type %q. Requered %d, but only %d available", i, itemQuantity, q)
-		return err
-	}
+	if value, ok := s.kitchenStack.Load(i); ok {
+		exists := cast.ToInt(value)
+		if exists < q {
+			err := fmt.Errorf("not enought in Stack of type %q. Requered %d, but only %d available", i, exists, q)
+			return err
+		}
 
-	s.kitchenStack[i] -= q
-	return nil
+		newVal := exists - q
+		s.kitchenStack.Store(i, newVal)
+		log.Warning.Printf("Kitchen Stack| %v => %d", i, newVal)
+		return nil
+	}
+	err := fmt.Errorf("unknown item `%v` requested", i)
+	return err
 }

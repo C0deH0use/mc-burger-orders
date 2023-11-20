@@ -16,13 +16,11 @@ type TopicConfigs struct {
 }
 
 func (c *TopicConfigs) ConnectToBroker() *kafka.Conn {
-	log.Warning.Println("Selecting one of the brokers in configuration...")
 	brokerAddress := c.Brokers[0]
 	conn, err := kafka.Dial("tcp", brokerAddress)
 	if err != nil {
 		log.Error.Fatal("failed to dial leader:", brokerAddress, err)
 	}
-	log.Warning.Println("Successfully dialed into broker", brokerAddress)
 	controller, err := conn.Controller()
 	if err != nil {
 		log.Error.Fatal("failed to connect to leading controller:", err)

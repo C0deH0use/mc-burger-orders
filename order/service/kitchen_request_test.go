@@ -65,7 +65,8 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	expectedHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
+	expectedOrderHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
+	expectedEventHeader := kafka.Header{Key: "event", Value: []byte("request-item")}
 	expectedMessage := dto.NewKitchenRequestMessage(itemName, quantity)
 	message, err := testReader.ReadMessage(context.Background())
 
@@ -75,8 +76,9 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 
 	// and
 	assert.Equal(t, topic, message.Topic)
-	assert.Len(t, message.Headers, 1)
-	assert.Equal(t, expectedHeader, message.Headers[0])
+	assert.Len(t, message.Headers, 2)
+	assert.Contains(t, message.Headers, expectedOrderHeader)
+	assert.Contains(t, message.Headers, expectedEventHeader)
 
 	actualMessage := &dto.KitchenRequestMessage{}
 	err = json.Unmarshal(message.Value, actualMessage)

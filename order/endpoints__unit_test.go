@@ -79,7 +79,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewStack(stack.CleanStack()),
+		s:              stack.NewEmptyStack(),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
@@ -125,7 +125,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewStack(stack.CleanStack()),
+		s:              stack.NewEmptyStack(),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},
@@ -169,7 +169,7 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewStack(stack.CleanStack()),
+		s:              stack.NewEmptyStack(),
 		repository:     repository,
 		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &service.KitchenService{},

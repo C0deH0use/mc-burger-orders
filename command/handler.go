@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
+	"mc-burger-orders/utils"
 )
 
 type Handler interface {
 	AddCommands(event string, commands ...Command)
+	GetHandledEvents() []string
 	GetCommands(message kafka.Message) ([]Command, error)
 	Handle(message kafka.Message) (bool, error)
 }
@@ -23,6 +25,15 @@ func NewCommandHandler() *DefaultCommandHandler {
 	}
 }
 
+func (o *DefaultCommandHandler) GetHandledEvents() []string {
+	events := make([]string, 0)
+	for event := range o.eventHandlers {
+		events = append(events, event)
+	}
+
+	return events
+}
+
 func (o *DefaultCommandHandler) AddCommands(event string, commands ...Command) {
 	if storedCommands, ok := o.eventHandlers[event]; ok {
 		storedCommands = append(storedCommands, commands...)
@@ -33,10 +44,16 @@ func (o *DefaultCommandHandler) AddCommands(event string, commands ...Command) {
 }
 
 func (o *DefaultCommandHandler) GetCommands(message kafka.Message) ([]Command, error) {
-	if commands, ok := o.eventHandlers[message.Topic]; ok {
+	eventType, err := utils.GetEventType(message)
+	if err != nil {
+		log.Error.Println(err.Error())
+		return nil, err
+	}
+
+	if commands, ok := o.eventHandlers[eventType]; ok {
 		return commands, nil
 	}
-	err := fmt.Errorf("failed to find command handler for messages of topic: %s", message.Topic)
+	err = fmt.Errorf("failed to find command handler for messages of topic: %s", message.Topic)
 	log.Error.Fatalln(err)
 	return nil, err
 }

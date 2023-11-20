@@ -20,6 +20,7 @@ var (
 	kafkaConfig *event.TopicConfigs
 	sut         *event.DefaultReader
 	topic       = fmt.Sprintf("test-stack-updates-%d", rand.Intn(100))
+	eventType   = "test-event"
 )
 
 type StubCommand struct {
@@ -31,6 +32,10 @@ func (s *StubCommand) Execute(ctx context.Context) (bool, error) {
 	s.Invocations++
 	s.waitG.Done()
 	return true, nil
+}
+
+func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
+	return int64(1010), nil
 }
 
 func TestStackReader(t *testing.T) {
@@ -61,16 +66,16 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 
 	eventBus := event.NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
-	commandHandler.AddCommands(topic, &stubCommand)
+	commandHandler.AddCommands(eventType, &stubCommand)
 
-	eventBus.AddHandler(commandHandler, topic)
+	eventBus.AddHandler(commandHandler)
 
 	sut = event.NewTopicReader(kafkaConfig, eventBus)
-	sut.SubscribeToTopic(stackMessages)
+	go sut.SubscribeToTopic(stackMessages)
 
 	// when
 	log.Println("Preparing to send test messages to topic", kafkaConfig.Topic)
-	for _, msgId := range []int{1, 2, 3, 4, 5, 6} {
+	for msgId := range make([]int, 6) {
 		go sendMessages(t, msgId)
 	}
 
@@ -83,21 +88,19 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 func sendMessages(t *testing.T, msgId int) {
 	writer := event.NewTopicWriter(kafkaConfig)
 
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(1010, 10))})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte(eventType)})
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 	msgValue := fmt.Sprintf("Test Message %d", msgId)
 	msg := kafka.Message{
-		Key:   msgKey,
-		Value: []byte(msgValue),
+		Key:     msgKey,
+		Headers: headers,
+		Value:   []byte(msgValue),
 	}
 
 	// when
-	log.Printf("Sending %d-th message on topic %v", msgId, kafkaConfig.Topic)
-
-	var s, err = time.ParseDuration(strconv.FormatInt(rand.Int63n(500), 10))
-	var randSleep = time.Millisecond * s
-
-	time.Sleep(randSleep)
-	err = writer.SendMessage(context.Background(), msg)
+	err := writer.SendMessage(context.Background(), msg)
 	if err != nil {
 		assert.Fail(t, "failed to send message to topic", kafkaConfig.Topic)
 	}

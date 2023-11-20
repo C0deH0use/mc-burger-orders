@@ -20,6 +20,7 @@ var (
 	kafkaConfig *event.TopicConfigs
 	sut         *event.DefaultReader
 	topic       = fmt.Sprintf("test-stack-updates-%d", rand.Intn(100))
+	eventType   = "test-event"
 )
 
 type StubCommand struct {
@@ -65,12 +66,12 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 
 	eventBus := event.NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
-	commandHandler.AddCommands(topic, &stubCommand)
+	commandHandler.AddCommands(eventType, &stubCommand)
 
-	eventBus.AddHandler(commandHandler, topic)
+	eventBus.AddHandler(commandHandler)
 
 	sut = event.NewTopicReader(kafkaConfig, eventBus)
-	sut.SubscribeToTopic(stackMessages)
+	go sut.SubscribeToTopic(stackMessages)
 
 	// when
 	log.Println("Preparing to send test messages to topic", kafkaConfig.Topic)
@@ -87,19 +88,19 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 func sendMessages(t *testing.T, msgId int) {
 	writer := event.NewTopicWriter(kafkaConfig)
 
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(1010, 10))})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte(eventType)})
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 	msgValue := fmt.Sprintf("Test Message %d", msgId)
 	msg := kafka.Message{
-		Key:   msgKey,
-		Value: []byte(msgValue),
+		Key:     msgKey,
+		Headers: headers,
+		Value:   []byte(msgValue),
 	}
 
 	// when
-	var s, err = time.ParseDuration(strconv.FormatInt(rand.Int63n(500), 10))
-	var randSleep = time.Millisecond * s
-
-	time.Sleep(randSleep)
-	err = writer.SendMessage(context.Background(), msg)
+	err := writer.SendMessage(context.Background(), msg)
 	if err != nil {
 		assert.Fail(t, "failed to send message to topic", kafkaConfig.Topic)
 	}

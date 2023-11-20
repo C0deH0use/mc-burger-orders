@@ -34,8 +34,8 @@ func main() {
 		log.Error.Panicf("error when setting trusted proxies. Reason: %s", err)
 	}
 
-	eventBus.AddHandler(orderCommandsHandler, stack.ItemAddedToStackEvent, order.CollectedEvent)
-	eventBus.AddHandler(kitchenEventsHandler, kitchen.RequestItemEvent)
+	eventBus.AddHandler(orderCommandsHandler)
+	eventBus.AddHandler(kitchenEventsHandler)
 
 	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, kitchenStack)
 

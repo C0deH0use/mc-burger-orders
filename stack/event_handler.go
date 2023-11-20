@@ -21,6 +21,10 @@ func NewStackEventHandler(database *mongo.Database, s *Stack) *EventHandler {
 	return &EventHandler{stack: s}
 }
 
+func (o *EventHandler) GetHandledEvents() []string {
+	return []string{ItemAddedToStackEvent}
+}
+
 func (o *EventHandler) GetCommand(message kafka.Message) (command.Command, error) {
 	eventType, err := utils.GetEventType(message)
 	if err != nil {

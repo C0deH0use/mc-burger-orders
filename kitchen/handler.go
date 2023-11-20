@@ -40,6 +40,10 @@ func NewHandler(kitchenTopicConfigs *event.TopicConfigs, stackTopicConfig *event
 	}
 }
 
+func (h *Handler) GetHandledEvents() []string {
+	return []string{RequestItemEvent}
+}
+
 func (h *Handler) Handle(message kafka.Message) (bool, error) {
 
 	eventType, err := utils.GetEventType(message)

@@ -9,6 +9,7 @@ import (
 
 type Handler interface {
 	AddCommands(event string, commands ...Command)
+	GetHandledEvents() []string
 	GetCommands(message kafka.Message) ([]Command, error)
 	Handle(message kafka.Message) (bool, error)
 }
@@ -22,6 +23,15 @@ func NewCommandHandler() *DefaultCommandHandler {
 	return &DefaultCommandHandler{
 		eventHandlers: make(map[string][]Command),
 	}
+}
+
+func (o *DefaultCommandHandler) GetHandledEvents() []string {
+	events := make([]string, 0)
+	for event := range o.eventHandlers {
+		events = append(events, event)
+	}
+
+	return events
 }
 
 func (o *DefaultCommandHandler) AddCommands(event string, commands ...Command) {

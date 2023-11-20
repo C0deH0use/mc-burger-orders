@@ -53,7 +53,7 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	msg = data.AppendHamburgerItem(msg, 1)
 
 	msg2 := make([]map[string]any, 0)
-	msg2 = data.AppendSpicyStripesItem(msg2, 1)
+	msg2 = data.AppendSpicyStripesItem(msg2, 2)
 
 	for range make([]int, 10) {
 		go sendMessages(t, msg)
@@ -61,7 +61,7 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	}
 
 	commandHandler := NewHandler(kafkaConfig, kafkaConfig, testStack)
-	eventBus.AddHandler(commandHandler, RequestItemEvent)
+	eventBus.AddHandler(commandHandler)
 
 	// when
 	reader := event.NewTopicReader(kafkaConfig, eventBus)
@@ -70,17 +70,15 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	// then
 	cnt := 0
 	for {
-		select {
-		case <-time.After(5 * time.Second):
-			if assertExpectedItemsCreated() {
-				return
-			}
-			log.Println("not all items created yet!")
-			cnt++
-			if cnt > 7 {
-				assert.Fail(t, "not all items created")
-				return
-			}
+		time.Sleep(1 * time.Second)
+		if assertExpectedItemsCreated() {
+			return
+		}
+		log.Println("not all items created yet!")
+		cnt++
+		if cnt > 25 {
+			assert.Fail(t, "not all items created")
+			return
 		}
 	}
 }

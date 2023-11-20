@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
+	"mc-burger-orders/utils"
 )
 
 type NewMessageHandler interface {
@@ -44,13 +45,12 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 		log.Info.Println("Subscribing to topic", r.configuration.Topic)
 
 		for {
-			r.ReadMessageFromTopic(context.Background(), msgChan)
+			go r.ReadMessageFromTopic(context.Background(), msgChan)
 		}
 	}()
 
 	go func() {
 		for newMessage := range msgChan {
-			log.Info.Println("PublishEvent")
 			go r.PublishEvent(newMessage)
 		}
 	}()
@@ -70,8 +70,12 @@ func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan k
 	if err != nil {
 		log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
 	}
+	eventType, err := utils.GetEventType(msg)
+	if err != nil {
+		log.Error.Println("failed to read event type from message:", err)
+	}
 
-	log.Warning.Println("Received messaged for topic:", msg.Topic)
+	log.Warning.Printf("Received messaged for topic: %v, event: %v", msg.Topic, eventType)
 	if msg.Topic == r.configuration.Topic {
 		msgChan <- msg
 	}

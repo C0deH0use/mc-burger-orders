@@ -37,6 +37,10 @@ func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfig
 	}
 }
 
+func (o *CommandsHandler) GetHandledEvents() []string {
+	return []string{stack.ItemAddedToStackEvent, CollectedEvent}
+}
+
 func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command, error) {
 	orderNumber, err := utils.GetOrderNumber(message)
 	if err != nil {

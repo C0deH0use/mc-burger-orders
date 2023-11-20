@@ -19,7 +19,6 @@ func NewInternalEventBus() *InternalEventBus {
 	}
 }
 
-// PublishEvent publishes events to all registered event handlers
 func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
 	eventType, err := utils.GetEventType(message)
 	if err != nil {
@@ -37,23 +36,17 @@ func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
 			log.Info.Printf("Event %v was handled with result %v\n", eventType, result)
 		}
 	}
+	log.Error.Printf("Event %v does not have any handled", eventType)
 	return nil
 }
 
-// AddHandler registers an event handler for all the events specified in the
-// variadic events parameter.
-func (b *InternalEventBus) AddHandler(handler command.Handler, events ...string) {
+func (b *InternalEventBus) AddHandler(handler command.Handler) {
 
-	for _, event := range events {
+	for _, event := range handler.GetHandledEvents() {
 
-		// There can be multiple handlers for any event.
-		// Here we check that a map is initialized to hold these handlers
-		// for a given type. If not we create one.
 		if _, ok := b.eventHandlers[event]; !ok {
 			b.eventHandlers[event] = make(map[command.Handler]struct{})
 		}
-
-		// Add this handler to the collection of handlers for the type.
 		b.eventHandlers[event][handler] = struct{}{}
 	}
 }

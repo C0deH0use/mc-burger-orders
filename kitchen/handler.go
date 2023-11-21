@@ -5,7 +5,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"mc-burger-orders/command"
-	"mc-burger-orders/event"
 	"mc-burger-orders/log"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/utils"
@@ -14,16 +13,14 @@ import (
 )
 
 type Handler struct {
-	command.DefaultCommandHandler
-	mealPreparation     MealPreparation
-	kitchenCooks        *workerpool.WorkerPool
-	stack               *stack.Stack
-	stackMessageWriter  event.Writer
-	kitchenTopicConfigs *event.TopicConfigs
+	defaultHandler  command.DefaultCommandHandler
+	mealPreparation MealPreparation
+	kitchenCooks    *workerpool.WorkerPool
+	stack           *stack.Stack
 }
 
-func NewHandler(kitchenTopicConfigs *event.TopicConfigs, stackTopicConfig *event.TopicConfigs, s *stack.Stack) *Handler {
-	maxWorkers := 3
+func NewHandler(s *stack.Stack) *Handler {
+	maxWorkers := 5
 	maxWorkersVal := os.Getenv("KITCHEN_WORKERS_MAX")
 
 	if len(maxWorkersVal) > 0 {
@@ -32,11 +29,10 @@ func NewHandler(kitchenTopicConfigs *event.TopicConfigs, stackTopicConfig *event
 		}
 	}
 	return &Handler{
-		kitchenCooks:        workerpool.New(maxWorkers),
-		mealPreparation:     &MealPreparationService{},
-		stack:               s,
-		stackMessageWriter:  event.NewTopicWriter(stackTopicConfig),
-		kitchenTopicConfigs: kitchenTopicConfigs,
+		kitchenCooks:    workerpool.New(maxWorkers),
+		mealPreparation: &MealPreparationService{},
+		stack:           s,
+		defaultHandler:  command.DefaultCommandHandler{},
 	}
 }
 
@@ -44,8 +40,16 @@ func (h *Handler) GetHandledEvents() []string {
 	return []string{RequestItemEvent}
 }
 
-func (h *Handler) Handle(message kafka.Message) (bool, error) {
+func (h *Handler) AddCommands(event string, commands ...command.Command) {
+	h.defaultHandler.AddCommands(event, commands...)
+}
 
+func (h *Handler) GetCommands(message kafka.Message) ([]command.Command, error) {
+	log.Warning.Printf("No Commands defined in Kitchen Handler")
+	return make([]command.Command, 0), nil
+}
+
+func (h *Handler) Handle(message kafka.Message) (bool, error) {
 	eventType, err := utils.GetEventType(message)
 	if err != nil {
 		log.Error.Println(err.Error())

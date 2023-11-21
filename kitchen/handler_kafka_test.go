@@ -60,7 +60,7 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 		go sendMessages(t, msg2)
 	}
 
-	commandHandler := NewHandler(kafkaConfig, kafkaConfig, testStack)
+	commandHandler := NewHandler(testStack)
 	eventBus.AddHandler(commandHandler)
 
 	// when

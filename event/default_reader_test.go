@@ -1,4 +1,4 @@
-package stack
+package event
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"mc-burger-orders/command"
-	"mc-burger-orders/event"
 	"mc-burger-orders/testing/utils"
 	"strconv"
 	"sync"
@@ -17,8 +16,8 @@ import (
 )
 
 var (
-	kafkaConfig *event.TopicConfigs
-	sut         *event.DefaultReader
+	kafkaConfig *TopicConfigs
+	sut         *DefaultReader
 	topic       = fmt.Sprintf("test-stack-updates-%d", rand.Intn(100))
 	eventType   = "test-event"
 )
@@ -41,7 +40,7 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 func TestStackReader(t *testing.T) {
 	ctx := context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig = &event.TopicConfigs{
+	kafkaConfig = &TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
 		NumPartitions:     1,
@@ -64,13 +63,13 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 	waitGroup.Add(6)
 	stubCommand := StubCommand{Invocations: 0, waitG: waitGroup}
 
-	eventBus := event.NewInternalEventBus()
+	eventBus := NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
 	commandHandler.AddCommands(eventType, &stubCommand)
 
 	eventBus.AddHandler(commandHandler)
 
-	sut = event.NewTopicReader(kafkaConfig, eventBus)
+	sut = NewTopicReader(kafkaConfig, eventBus)
 	go sut.SubscribeToTopic(stackMessages)
 
 	// when
@@ -86,7 +85,7 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 }
 
 func sendMessages(t *testing.T, msgId int) {
-	writer := event.NewTopicWriter(kafkaConfig)
+	writer := NewTopicWriter(kafkaConfig)
 
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(1010, 10))})

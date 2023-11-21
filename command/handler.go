@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
 	"mc-burger-orders/utils"
@@ -53,26 +52,32 @@ func (o *DefaultCommandHandler) GetCommands(message kafka.Message) ([]Command, e
 	if commands, ok := o.eventHandlers[eventType]; ok {
 		return commands, nil
 	}
-	err = fmt.Errorf("failed to find command handler for messages of topic: %s", message.Topic)
-	log.Error.Fatalln(err)
-	return nil, err
+	log.Warning.Printf("failed to find command handler in `%v` for messages of topic: %v", "DefaultCommandHandler", message.Topic)
+	return make([]Command, 0), err
 }
 
 func (o *DefaultCommandHandler) Handle(message kafka.Message) (bool, error) {
 	commands, err := o.GetCommands(message)
 	if err != nil {
-		log.Error.Println(err)
+		log.Error.Println(err.Error())
 		return false, err
 	}
 
+	return o.HandleCommands(commands...)
+}
+
+func (o *DefaultCommandHandler) HandleCommands(commands ...Command) (bool, error) {
 	result := false
 	log.Info.Printf("Message will be executed on %d command(s)\n", len(commands))
 	for _, command := range commands {
-
-		result, err = o.Execute(command)
+		commandResult, err := o.Execute(command)
 		if err != nil {
 			log.Error.Println("While executing cmd", command, "following error occurred", err.Error())
 			return false, err
+		}
+
+		if commandResult {
+			result = true
 		}
 	}
 

@@ -20,9 +20,6 @@ type DefaultReader struct {
 }
 
 func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultReader {
-	if eventBus == nil {
-		log.Error.Panicln("missing event bus to communicate received messages")
-	}
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
@@ -50,8 +47,10 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 	}()
 
 	go func() {
-		for newMessage := range msgChan {
-			go r.PublishEvent(newMessage)
+		if r.eventBus != nil {
+			for newMessage := range msgChan {
+				go r.PublishEvent(newMessage)
+			}
 		}
 	}()
 }

@@ -2,7 +2,8 @@ package model
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"mc-burger-orders/item"
+	"mc-burger-orders/kitchen/item"
+	"mc-burger-orders/log"
 	"time"
 )
 
@@ -22,19 +23,35 @@ func CreateNewOrder(number int64, order NewOrder) Order {
 	return Order{Id: &objectID, OrderNumber: number, CustomerId: order.CustomerId, Items: order.Items, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()}
 }
 
-func (o *Order) PackItem(name string, quantity int) {
-	o.PackedItems = append(o.PackedItems, item.Item{Name: name, Quantity: quantity})
+func (o *Order) PackItem(name string, quantity int) bool {
+	if quantity > 0 {
+		if o.PackedItems == nil {
+			o.PackedItems = make([]item.Item, 0)
+		}
+		o.PackedItems = append(o.PackedItems, item.Item{Name: name, Quantity: quantity})
+	}
 
 	packedItemsCount := o.getItemsCount(o.PackedItems)
 	if packedItemsCount == 0 {
-		return
+		return false
 	}
 
-	if packedItemsCount < o.getItemsCount(o.Items) {
-		o.Status = InProgress
-	} else {
-		o.Status = Ready
+	var newStatus OrderStatus
+	switch {
+	case packedItemsCount < o.getItemsCount(o.Items):
+		newStatus = InProgress
+	case packedItemsCount == o.getItemsCount(o.Items):
+		newStatus = Ready
+	default:
+		newStatus = Requested
 	}
+	if newStatus != o.Status {
+		o.Status = newStatus
+		// Push Order Status Updated
+		log.Warning.Println("Order Status updated to:", o.Status)
+		return true
+	}
+	return false
 }
 
 func (o *Order) getItemsCount(items []item.Item) int {
@@ -51,7 +68,7 @@ const (
 	Requested  = OrderStatus("REQUESTED")
 	InProgress = OrderStatus("IN_PROGRESS")
 	Ready      = OrderStatus("READY")
-	Done       = OrderStatus("DONE")
+	COLLECTED  = OrderStatus("COLLECTED")
 )
 
 type OrderStatus string

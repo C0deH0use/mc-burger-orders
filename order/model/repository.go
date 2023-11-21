@@ -2,7 +2,9 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"mc-burger-orders/log"
@@ -13,12 +15,16 @@ type FetchByIdRepository interface {
 	FetchById(ctx context.Context, id interface{}) (*Order, error)
 }
 
+type FetchByMissingItemsOrderByOrderNumber interface {
+	FetchByMissingItem(ctx context.Context, itemName string) ([]*Order, error)
+}
+
 type FetchByOrderNumberRepository interface {
 	FetchByOrderNumber(ctx context.Context, orderNumber int64) (*Order, error)
 }
 
 type FetchManyRepository interface {
-	FetchMany(ctx context.Context) ([]Order, error)
+	FetchMany(ctx context.Context) ([]*Order, error)
 }
 
 type StoreRepository interface {
@@ -29,7 +35,13 @@ type OrderRepository interface {
 	StoreRepository
 	FetchByIdRepository
 	FetchByOrderNumberRepository
+	FetchByMissingItemsOrderByOrderNumber
 	FetchManyRepository
+}
+
+type PackingOrderItemsRepository interface {
+	StoreRepository
+	FetchByMissingItemsOrderByOrderNumber
 }
 
 type OrderRepositoryImpl struct {
@@ -56,8 +68,23 @@ func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (
 		log.Error.Println("Error when updating order in db", err)
 		return nil, err
 	}
+	if order.Id == nil && result.UpsertedID == nil {
+		err = fmt.Errorf("missing order pk id for the document")
+		return nil, err
+	}
 
-	return r.FetchById(ctx, result.UpsertedID)
+	var orderId primitive.ObjectID
+	switch {
+	case result.UpsertedID != nil:
+		orderId = result.UpsertedID.(primitive.ObjectID)
+	case order.Id != nil:
+		orderId = *order.Id
+	default:
+		err = fmt.Errorf("cannot determin order pk id")
+		return nil, err
+	}
+
+	return r.FetchById(ctx, orderId)
 }
 
 func (r *OrderRepositoryImpl) FetchById(ctx context.Context, id interface{}) (*Order, error) {
@@ -94,18 +121,45 @@ func (r *OrderRepositoryImpl) FetchByOrderNumber(ctx context.Context, orderNumbe
 	return order, nil
 }
 
-func (r *OrderRepositoryImpl) FetchMany(ctx context.Context) ([]Order, error) {
+func (r *OrderRepositoryImpl) FetchMany(ctx context.Context) ([]*Order, error) {
 	cursor, err := r.c.Find(ctx, bson.D{})
 	if err != nil {
 		log.Error.Println("Error when fetching orders from db", err)
 		return nil, err
 	}
 
-	var orders []Order
+	var orders []*Order
 	if err = cursor.All(context.TODO(), &orders); err != nil {
 		log.Error.Println("Error reading cursor data", err)
 		return nil, err
 	}
 
+	return orders, nil
+}
+
+func (r *OrderRepositoryImpl) FetchByMissingItem(ctx context.Context, itemName string) ([]*Order, error) {
+	filterDef := bson.D{
+		{
+			Key:   "items.name",
+			Value: itemName,
+		},
+	}
+	findOptions := &options.FindOptions{
+		Sort: bson.D{{
+			Key:   "orderNumber",
+			Value: 1,
+		}},
+	}
+	cursor, err := r.c.Find(ctx, filterDef, findOptions)
+	if err != nil {
+		log.Error.Println("Error when fetching orders from db", err)
+		return nil, err
+	}
+
+	var orders []*Order
+	if err = cursor.All(context.TODO(), &orders); err != nil {
+		log.Error.Println("Error reading cursor data", err)
+		return nil, err
+	}
 	return orders, nil
 }

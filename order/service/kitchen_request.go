@@ -5,15 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/segmentio/kafka-go"
-	"github.com/spf13/cast"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/utils"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -25,32 +22,6 @@ type KitchenService struct {
 	*event.DefaultWriter
 }
 
-func KitchenTopicConfigsFromEnv() *event.TopicConfigs {
-	kafkaAddressEnvVal := os.Getenv("KAFKA_ADDRESS")
-	kafkaAddress := strings.Split(kafkaAddressEnvVal, ",")
-	topic := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NAME")
-
-	numPartitions := 3
-	numPartitionsVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NUMBER_OF_PARTITIONS")
-	replicationFactor := 1
-	replicationFactorVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_REPLICA_FACTOR")
-
-	if len(numPartitionsVal) > 0 {
-		numPartitions = cast.ToInt(numPartitionsVal)
-	}
-	if len(replicationFactorVal) > 0 {
-		replicationFactor = cast.ToInt(replicationFactorVal)
-	}
-
-	return &event.TopicConfigs{
-		Brokers:           kafkaAddress,
-		Topic:             topic,
-		AutoCreateTopic:   true,
-		NumPartitions:     numPartitions,
-		ReplicationFactor: replicationFactor,
-	}
-}
-
 func NewKitchenServiceFrom(config *event.TopicConfigs) *KitchenService {
 	defaultWriter := event.NewTopicWriter(config)
 	return &KitchenService{defaultWriter}
@@ -60,7 +31,8 @@ func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, q
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, utils.OrderHeader(orderNumber))
 	headers = append(headers, utils.EventTypeHeader(kitchen.RequestItemEvent))
-	message := dto.NewKitchenRequestMessage(itemName, quantity)
+	message := make([]*dto.KitchenRequestMessage, 0)
+	message = append(message, dto.NewKitchenRequestMessage(itemName, quantity))
 	msgValue, err := json.Marshal(message)
 	if err != nil {
 		err = fmt.Errorf("failed to convert message details to bytes. Reason: %s", err)

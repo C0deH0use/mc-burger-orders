@@ -9,11 +9,19 @@ Content-Type: application/json
   "items": [
     {
       "name": "hamburger",
-      "quantity": 2
+      "quantity": 5
     },
     {
       "name": "cheeseburger",
       "quantity": 2
+    },
+    {
+      "name": "mc-spicy",
+      "quantity": 10
+    },
+    {
+      "name": "spicy-stripes",
+      "quantity": 20
     },
     {
       "name": "ice-cream",

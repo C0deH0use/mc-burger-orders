@@ -45,8 +45,6 @@ func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {
 	}
 }
 
-var expectedOrderNumber = int64(10)
-
 func Test_UnitOrderEndpoints(t *testing.T) {
 	t.Run("should execute order request command when request is valid", shouldExecuteNewOrderCommand)
 	t.Run("should return BAD REQUEST when request has no items", shouldReturnBadRequestWhenItemsEmpty)
@@ -75,8 +73,9 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.NewStubRepository()
-	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
+	repository := stubs.GivenRepository()
+	orderNumberRepository := stubs.GivenRepository()
+	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),
@@ -121,8 +120,9 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.NewStubRepository()
-	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
+	repository := stubs.GivenRepository()
+	orderNumberRepository := stubs.GivenRepository()
+	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),
@@ -165,8 +165,9 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.NewStubRepository()
-	orderNumberRepository := stubs.NewStubRepositoryWithNextNumber(expectedOrderNumber)
+	repository := stubs.GivenRepository()
+	orderNumberRepository := stubs.GivenRepository()
+	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),

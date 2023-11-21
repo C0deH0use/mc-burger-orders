@@ -27,6 +27,10 @@ func NewTopicWriter(configuration *TopicConfigs) *DefaultWriter {
 	return &DefaultWriter{conn: conn, configuration: configuration}
 }
 
+func (d *DefaultWriter) TopicName() string {
+	return d.configuration.Topic
+}
+
 func (d *DefaultWriter) initializeWriter() *kafka.Writer {
 	return &kafka.Writer{
 		Addr:                   kafka.TCP(d.configuration.Controller),

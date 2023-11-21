@@ -18,13 +18,14 @@ func main() {
 	kitchenStack := stack.NewEmptyStack()
 	eventBus := event.NewInternalEventBus()
 	stackTopicConfigs := stack.TopicConfigsFromEnv()
+	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
 
-	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, kitchenStack)
+	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, kitchenStack)
 
 	kitchenTopicReader := event.NewTopicReader(kitchenTopicConfigs, eventBus)
-	kitchenEventsHandler := kitchen.NewHandler(kitchenTopicConfigs, stackTopicConfigs, kitchenStack)
+	kitchenEventsHandler := kitchen.NewHandler(kitchenStack)
 
 	r := gin.Default()
 	r.ForwardedByClientIP = true
@@ -37,19 +38,18 @@ func main() {
 	eventBus.AddHandler(orderCommandsHandler)
 	eventBus.AddHandler(kitchenEventsHandler)
 
-	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, kitchenStack)
+	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, kitchenStack)
 
 	orderEndpoints.Setup(r)
+
+	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
+	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
 
 	err = r.Run()
 
 	if err != nil {
 		log.Error.Panicf("error when starting REST service. Reason: %s", err)
 	}
-
-	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
-	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
-
 }
 
 func loadEnv() {

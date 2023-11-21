@@ -7,10 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
-	i "mc-burger-orders/item"
+	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
-	command2 "mc-burger-orders/order/command"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
@@ -23,25 +22,33 @@ type Endpoints struct {
 	queryService    m.OrderQueryService
 	orderRepository m.OrderRepository
 	kitchenService  service.KitchenRequestService
+	statusEmitter   StatusEmitter
 	dispatcher      command.Dispatcher
 }
 
-func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
+func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
+	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
 	return &Endpoints{
-		stack: s, queryService: queryService, orderRepository: repository, kitchenService: kitchenService, dispatcher: &command.DefaultDispatcher{},
+		stack:           s,
+		queryService:    queryService,
+		orderRepository: repository,
+		kitchenService:  kitchenService,
+		statusEmitter:   statusEmitter,
+		dispatcher:      &command.DefaultDispatcher{},
 	}
 }
 
 func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order m.NewOrder) command.Command {
-	return &command2.NewRequestCommand{
+	return &NewRequestCommand{
 		Stack:          e.stack,
 		Repository:     e.orderRepository,
 		KitchenService: e.kitchenService,
+		StatusEmitter:  e.statusEmitter,
 		OrderNumber:    orderNumber,
 		NewOrder:       order,
 	}
@@ -88,8 +95,7 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 func validate(c m.NewOrder) error {
 	var errs []error
 	for _, item := range c.Items {
-		err := i.KnownItem(item.Name)
-		if err != nil {
+		if err := i.IsKnownItem(item.Name); err != nil {
 			errs = append(errs, err)
 		}
 	}

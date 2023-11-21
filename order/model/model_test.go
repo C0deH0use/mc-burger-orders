@@ -2,7 +2,7 @@ package model
 
 import (
 	"github.com/stretchr/testify/assert"
-	"mc-burger-orders/item"
+	"mc-burger-orders/kitchen/item"
 	"testing"
 )
 

@@ -29,3 +29,10 @@ jobs:
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v3.7.0
+
+
+  end2end:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run End2End Tests
+        run: go test -v ./...

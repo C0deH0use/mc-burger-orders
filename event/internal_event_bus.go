@@ -35,6 +35,7 @@ func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
 			}
 			log.Info.Printf("Event %v was handled with result %v\n", eventType, result)
 		}
+		return nil
 	}
 	log.Error.Printf("Event %v does not have any handled", eventType)
 	return nil

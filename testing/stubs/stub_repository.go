@@ -7,43 +7,74 @@ import (
 )
 
 type StubRepository struct {
-	o            *m.Order
-	nextNumber   int64
-	err          error
-	methodCalled []map[string]interface{}
+	o                  []*m.Order
+	insertOrUpdate     *m.Order
+	fetchById          *m.Order
+	fetchByOrderNumber *m.Order
+	nextNumber         int64
+	err                error
+	methodCalled       []map[string]interface{}
 }
 
-func NewStubRepository() *StubRepository {
+func GivenRepository() *StubRepository {
 	return &StubRepository{}
 }
 
-func NewStubRepositoryWithOrder(order *m.Order) *StubRepository {
-	return &StubRepository{o: order}
+func GivenRepositoryReturnOrders(orders ...*m.Order) *StubRepository {
+	return &StubRepository{o: orders}
 }
 
-func NewStubRepositoryWithNextNumber(nextNumber int64) *StubRepository {
-	return &StubRepository{nextNumber: nextNumber}
+func (s *StubRepository) ReturnFetchById(order *m.Order) {
+	s.fetchById = order
+}
+
+func (s *StubRepository) ReturnOrders(orders ...*m.Order) {
+	s.o = orders
+}
+
+func (s *StubRepository) ReturnWhenInsertOrUpdate(order *m.Order) {
+	s.insertOrUpdate = order
+}
+
+func (s *StubRepository) ReturnNextNumber(nextNumber int64) {
+	s.nextNumber = nextNumber
 }
 
 func (s *StubRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": order})
-	return s.o, s.err
-}
-func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchById": id})
-	return s.o, nil
-}
-func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByOrderNumber": orderNumber})
-	return s.o, nil
-}
-func (s *StubRepository) FetchMany(ctx context.Context) ([]m.Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
-	return []m.Order{*s.o}, nil
+
+	if s.insertOrUpdate != nil {
+		return s.insertOrUpdate, nil
+	}
+	return &order, nil
 }
 
-func (e *StubRepository) GetNext(ctx context.Context) (int64, error) {
-	return e.nextNumber, nil
+func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchById": id})
+
+	if s.fetchById != nil {
+		return s.fetchById, nil
+	}
+	return s.o[0], nil
+}
+
+func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByOrderNumber": orderNumber})
+	return s.o[0], nil
+}
+
+func (s *StubRepository) FetchMany(ctx context.Context) ([]*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
+	return s.o, nil
+}
+
+func (s *StubRepository) FetchByMissingItem(ctx context.Context, itemName string) ([]*m.Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByMissingItem": itemName})
+	return s.o, nil
+}
+
+func (s *StubRepository) GetNext(ctx context.Context) (int64, error) {
+	return s.nextNumber, nil
 }
 
 func (s *StubRepository) GetUpsertArgs() []m.Order {

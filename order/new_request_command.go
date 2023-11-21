@@ -54,7 +54,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("failed to store Order in DB, despite MongoDB Driver returning success")
 	}
 	if statusUpdated {
-		go c.StatusEmitter.EmitStatusUpdatedEvent(result)
+		c.StatusEmitter.EmitStatusUpdatedEvent(result)
 	}
 	return true, nil
 }

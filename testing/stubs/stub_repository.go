@@ -20,10 +20,6 @@ func GivenRepository() *StubRepository {
 	return &StubRepository{}
 }
 
-func GivenRepositoryReturnOrders(orders ...*m.Order) *StubRepository {
-	return &StubRepository{o: orders}
-}
-
 func (s *StubRepository) ReturnFetchById(order *m.Order) {
 	s.fetchById = order
 }

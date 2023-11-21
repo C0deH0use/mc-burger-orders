@@ -48,10 +48,10 @@ func (s *Stack) Add(item string) {
 	if value, ok := s.kitchenStack.Load(item); ok {
 		newVal := cast.ToInt(value) + 1
 		s.kitchenStack.Store(item, newVal)
-		log.Warning.Printf("Kitchen Stack | %v => %d", item, newVal)
+		log.Warning.Printf("Kitchen Stack | %v +1 => %d", item, newVal)
 	} else {
 		s.kitchenStack.Store(item, 1)
-		log.Warning.Printf("Kitchen Stack | %v => + %d", item, 1)
+		log.Warning.Printf("Kitchen Stack | %v +1 => %d", item, 1)
 	}
 
 	go s.sendStackUpdateEvent(item, 1)
@@ -61,10 +61,10 @@ func (s *Stack) AddMany(item string, quantity int) {
 	if value, ok := s.kitchenStack.Load(item); ok {
 		newVal := cast.ToInt(value) + quantity
 		s.kitchenStack.Store(item, newVal)
-		log.Warning.Printf("Kitchen Stack | %v => %d", item, newVal)
+		log.Warning.Printf("Kitchen Stack | %v + %d => %d", item, quantity, newVal)
 	} else {
 		s.kitchenStack.Store(item, quantity)
-		log.Warning.Printf("Kitchen Stack | %v => %d", item, quantity)
+		log.Warning.Printf("Kitchen Stack | %v + %d=> %d", item, quantity, quantity)
 	}
 
 	go s.sendStackUpdateEvent(item, quantity)
@@ -87,7 +87,7 @@ func (s *Stack) Take(item string, quantity int) error {
 
 		newVal := exists - quantity
 		s.kitchenStack.Store(item, newVal)
-		log.Warning.Printf("Kitchen Stack | %v => %d", item, newVal)
+		log.Warning.Printf("Kitchen Stack | %v - %d => %d", item, quantity, newVal)
 		return nil
 	}
 	err := fmt.Errorf("unknown item `%v` requested", item)

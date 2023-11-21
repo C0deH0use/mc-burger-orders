@@ -75,7 +75,7 @@ func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
 				return false, err
 			}
 			if statusUpdated {
-				go p.StatusEmitter.EmitStatusUpdatedEvent(order)
+				p.StatusEmitter.EmitStatusUpdatedEvent(order)
 			}
 		}
 	}

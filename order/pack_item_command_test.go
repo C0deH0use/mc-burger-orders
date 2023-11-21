@@ -59,7 +59,8 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 	kitchenService := stubs2.NewStubService()
 	statusEmitter := stubs2.NewStubService()
-	repositoryStub := stubs2.GivenRepositoryReturnOrders(givenExistingOrder())
+	repositoryStub := stubs2.GivenRepository()
+	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -140,7 +141,8 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 	kitchenService := stubs2.NewStubService()
 	statusEmitter := stubs2.NewStubService()
-	repositoryStub := stubs2.GivenRepositoryReturnOrders(givenExistingOrder())
+	repositoryStub := stubs2.GivenRepository()
+	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -215,7 +217,8 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	kitchenService := stubs2.NewStubService()
 	statusEmitter := stubs2.NewStubService()
-	repositoryStub := stubs2.GivenRepositoryReturnOrders(givenExistingOrder())
+	repositoryStub := stubs2.GivenRepository()
+	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,
@@ -268,7 +271,8 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 
 	kitchenService := stubs2.NewStubService()
 	statusEmitter := stubs2.NewStubService()
-	repositoryStub := stubs2.GivenRepositoryReturnOrders(givenExistingOrder())
+	repositoryStub := stubs2.GivenRepository()
+	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Stack:          s,

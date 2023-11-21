@@ -51,16 +51,7 @@ func Test_CreateNewOrder(t *testing.T) {
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
 	}
-	expectedStoredOrder := &m.Order{
-		OrderNumber: expectedOrderNumber,
-		CustomerId:  10,
-		Status:      m.Ready,
-		Items:       newOrder.Items,
-		PackedItems: newOrder.Items,
-	}
-
 	stubRepository.ReturnOrders(expectedOrder)
-	stubRepository.ReturnWhenInsertOrUpdate(expectedStoredOrder)
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
@@ -206,15 +197,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	}
 	stubKitchenService := stubs2.NewStubService()
 	stubStatusEmitter := stubs2.NewStubService()
+	stubRepository := stubs2.GivenRepository()
 
-	expectedOrder := &m.Order{
-		OrderNumber: expectedOrderNumber,
-		CustomerId:  10,
-		Status:      m.Requested,
-		Items:       newOrder.Items,
-		PackedItems: []i.Item{},
-	}
-	stubRepository := stubs2.GivenRepositoryReturnOrders(expectedOrder)
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
 		Stack:          s,

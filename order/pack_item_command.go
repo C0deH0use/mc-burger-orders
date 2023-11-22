@@ -43,7 +43,7 @@ func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
 		}
 
 		for _, order := range orders {
-			orderQuantity, err := getMissingItemsOfOrder(order, itemUpdate.ItemName)
+			orderQuantity, err := order.GetMissingItemsCount(itemUpdate.ItemName)
 			if err != nil {
 				log.Error.Println(err.Error())
 				continue
@@ -81,25 +81,4 @@ func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func getMissingItemsOfOrder(o *om.Order, itemName string) (int, error) {
-	var quantity = -1
-	for _, item := range o.Items {
-		if item.Name == itemName {
-			quantity = item.Quantity
-		}
-	}
-	if quantity == -1 {
-		err := fmt.Errorf("could not find item `%v` on the order list", itemName)
-		return -quantity, err
-	}
-
-	for _, item := range o.PackedItems {
-		if item.Name == itemName {
-			quantity -= item.Quantity
-		}
-	}
-
-	return quantity, nil
 }

@@ -37,7 +37,8 @@ func RequestMatchingFnc(itemName string, quantity int, orderNumber int64) func(a
 		argQuantity := args["quantity"]
 		argNumber := args["orderNumber"]
 		log.Printf("StubService methodCalled. %+v", args)
-		return argName == itemName && argQuantity == quantity && argNumber == orderNumber
+		b := argName == itemName && argQuantity == quantity && argNumber == orderNumber
+		return b
 	}
 }
 

@@ -143,6 +143,13 @@ func (r *OrderRepositoryImpl) FetchByMissingItem(ctx context.Context, itemName s
 			Key:   "items.name",
 			Value: itemName,
 		},
+		{
+			Key: "status",
+			Value: bson.D{{
+				Key:   "$in",
+				Value: bson.A{Requested, InProgress},
+			}},
+		},
 	}
 	findOptions := &options.FindOptions{
 		Sort: bson.D{{
@@ -152,14 +159,21 @@ func (r *OrderRepositoryImpl) FetchByMissingItem(ctx context.Context, itemName s
 	}
 	cursor, err := r.c.Find(ctx, filterDef, findOptions)
 	if err != nil {
-		log.Error.Println("Error when fetching orders from db", err)
+		log.Error.Println("Error when fetching dbRecords from db", err)
 		return nil, err
 	}
 
-	var orders []*Order
-	if err = cursor.All(context.TODO(), &orders); err != nil {
+	dbRecords := make([]*Order, 0)
+	if err = cursor.All(context.TODO(), &dbRecords); err != nil {
 		log.Error.Println("Error reading cursor data", err)
 		return nil, err
 	}
-	return orders, nil
+	orders := make([]*Order, 0)
+	for _, record := range dbRecords {
+		if count, err := record.GetMissingItemsCount(itemName); err == nil && count > 0 {
+			orders = append(orders, record)
+		}
+	}
+
+	return dbRecords, nil
 }

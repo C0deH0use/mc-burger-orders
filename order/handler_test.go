@@ -67,6 +67,7 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	// given
 	kitchenStack := stack.NewEmptyStack()
 	expectedOrders := []interface{}{
+		m.Order{OrderNumber: 999, CustomerId: 10, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		m.Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "hamburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}

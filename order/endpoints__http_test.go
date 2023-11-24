@@ -37,12 +37,11 @@ var (
 
 func TestOrderHttpEndpoints(t *testing.T) {
 	ctx := context.Background()
-	mongoContainer = utils.TestWithMongo(t, ctx)
+	mongoContainer, database = utils.TestWithMongo(t, ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
 
-	database = utils.GetMongoDbFrom(t, mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)

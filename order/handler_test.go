@@ -7,13 +7,13 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
-	"log"
 	"math/rand"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/utils"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -27,6 +27,9 @@ var (
 )
 
 func TestOrdersHandler_Handle(t *testing.T) {
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip("skipping integration tests: set INTEGRATION environment variable")
+	}
 	ctx := context.Background()
 
 	mongoContainer, database = utils.TestWithMongo(t, ctx)
@@ -41,9 +44,9 @@ func TestOrdersHandler_Handle(t *testing.T) {
 	t.Run("should pack item when stack event occurred", shouldPackPreparedItemWhenEvenFromStackOccurred)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateMongo(t, mongoContainer)
-		utils.TerminateKafka(t, kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateMongo(t, ctx, mongoContainer)
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 

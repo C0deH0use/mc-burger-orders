@@ -3,10 +3,15 @@ package model
 import (
 	"github.com/stretchr/testify/assert"
 	"mc-burger-orders/kitchen/item"
+	"os"
 	"testing"
 )
 
 func TestOrder_UpdateStatusWhenPackingItemsAndStillSomeAreMissingToCompleteOrder(t *testing.T) {
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{
@@ -29,6 +34,10 @@ func TestOrder_UpdateStatusWhenPackingItemsAndStillSomeAreMissingToCompleteOrder
 }
 
 func TestOrder_UpdateStatusWhenAllPackingItemsAndPresent(t *testing.T) {
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{
@@ -61,6 +70,10 @@ func TestOrder_UpdateStatusWhenAllPackingItemsAndPresent(t *testing.T) {
 
 func TestOrder_PackItemCountWhenZeroItemsPresent(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		PackedItems: []item.Item{},
 	}
@@ -74,6 +87,9 @@ func TestOrder_PackItemCountWhenZeroItemsPresent(t *testing.T) {
 
 func TestOrder_PackItemCountWhenOneItemWithQuantityPresent(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
 	order := Order{
 		PackedItems: []item.Item{
 			{
@@ -92,6 +108,9 @@ func TestOrder_PackItemCountWhenOneItemWithQuantityPresent(t *testing.T) {
 
 func TestOrder_PackItemCountWhenTwoItemsWithDifferentQuantityPresent(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
 	order := Order{
 		PackedItems: []item.Item{
 			{
@@ -114,6 +133,9 @@ func TestOrder_PackItemCountWhenTwoItemsWithDifferentQuantityPresent(t *testing.
 
 func TestOrder_GetMissingItemsCount_WhenItemIsNotFullyReady(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
 	order := Order{
 		Items: []item.Item{
 			{
@@ -144,6 +166,9 @@ func TestOrder_GetMissingItemsCount_WhenItemIsNotFullyReady(t *testing.T) {
 
 func TestOrder_GetMissingItemsCount_WhenItemReady(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
 	order := Order{
 		Items: []item.Item{
 			{
@@ -174,6 +199,10 @@ func TestOrder_GetMissingItemsCount_WhenItemReady(t *testing.T) {
 
 func TestOrder_GetMissingItemsCount_Error_When_AskingAboutNonExistingItem(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{
@@ -204,6 +233,10 @@ func TestOrder_GetMissingItemsCount_Error_When_AskingAboutNonExistingItem(t *tes
 
 func TestOrder_GetMissingItems_WhenOrderReady(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{
@@ -239,6 +272,10 @@ func TestOrder_GetMissingItems_WhenOrderReady(t *testing.T) {
 
 func TestOrder_GetMissingItems_WhenOrderInProgress(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{
@@ -270,6 +307,10 @@ func TestOrder_GetMissingItems_WhenOrderInProgress(t *testing.T) {
 
 func TestOrder_GetMissingItems_WhenOrderHasZeroItems(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: make([]item.Item, 0),
 		PackedItems: []item.Item{
@@ -289,6 +330,10 @@ func TestOrder_GetMissingItems_WhenOrderHasZeroItems(t *testing.T) {
 
 func TestOrder_GetMissingItems_WhenOrderHasZeroPackedItems(t *testing.T) {
 	// given
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
+
 	order := Order{
 		Items: []item.Item{
 			{

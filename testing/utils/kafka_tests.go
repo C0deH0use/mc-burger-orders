@@ -43,9 +43,7 @@ func startKafkaContainer(t *testing.T, ctx context.Context) *kafka.KafkaContaine
 	return kafkaContainer
 }
 
-func TerminateKafka(t *testing.T, kafkaContainer *kafka.KafkaContainer) {
-	ctx := context.Background()
-
+func TerminateKafka(t *testing.T, ctx context.Context, kafkaContainer *kafka.KafkaContainer) {
 	t.Log("Terminating Kafka")
 	if err := kafkaContainer.Terminate(ctx); err != nil {
 		assert.Fail(t, "Error while terminating Kafka Container")

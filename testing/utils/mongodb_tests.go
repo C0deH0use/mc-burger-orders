@@ -17,9 +17,7 @@ func TestWithMongo(t *testing.T, ctx context.Context) (*mongodb.MongoDBContainer
 	return mongoDbContainer, mongoDb
 }
 
-func TerminateMongo(t *testing.T, mongodbContainer *mongodb.MongoDBContainer) {
-	ctx := context.Background()
-
+func TerminateMongo(t *testing.T, ctx context.Context, mongodbContainer *mongodb.MongoDBContainer) {
 	t.Log("Terminating MongoDB....")
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {

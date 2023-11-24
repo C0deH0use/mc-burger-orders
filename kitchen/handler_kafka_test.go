@@ -35,7 +35,7 @@ func TestCommandsHandler_WithKafkaMessages(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
-		utils.TerminateKafka(t, kafkaContainer)
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 

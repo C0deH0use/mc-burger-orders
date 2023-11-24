@@ -3,6 +3,9 @@ build:
 
 test:
 	go test -v ./...
+integration-test:
+	INTEGRATION=1 go test -v ./...
+
 lint:
 	golangci-lint run
 

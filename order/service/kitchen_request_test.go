@@ -10,6 +10,7 @@ import (
 	"mc-burger-orders/event"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/testing/utils"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -23,6 +24,9 @@ var (
 )
 
 func TestKitchenService_RequestForOrder(t *testing.T) {
+	if os.Getenv("INTEGRATION") == "1" {
+		t.Skip()
+	}
 	ctx = context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig := event.TestTopicConfigs(topic, brokers...)
@@ -42,7 +46,7 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 
 	// Clean up the container after
 	t.Cleanup(func() {
-		utils.TerminateKafka(t, kafkaContainer)
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 

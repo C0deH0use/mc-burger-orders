@@ -21,6 +21,7 @@ import (
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -36,6 +37,10 @@ var (
 )
 
 func TestOrderHttpEndpoints(t *testing.T) {
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip()
+	}
+
 	ctx := context.Background()
 	mongoContainer, database = utils.TestWithMongo(t, ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
@@ -48,9 +53,9 @@ func TestOrderHttpEndpoints(t *testing.T) {
 	t.Run("should store and begin packing order when received valid request", shouldBeginPackingAndStoreOrderWhenRequested)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateMongo(t, mongoContainer)
-		utils.TerminateKafka(t, kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateMongo(t, ctx, mongoContainer)
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 

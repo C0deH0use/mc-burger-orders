@@ -13,6 +13,7 @@ import (
 
 func Test_CreateNewOrder(t *testing.T) {
 	// given
+
 	s := stack.NewEmptyStack()
 	s.AddMany("hamburger", 3)
 

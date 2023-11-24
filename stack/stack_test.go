@@ -43,8 +43,8 @@ func TestStack_Add(t *testing.T) {
 	t.Run("should emit event when adding multiple items", shouldEmitAddItemEvenWhenMultipleItemsAdded)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateKafka(t, kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 

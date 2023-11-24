@@ -31,7 +31,6 @@ func TestOrdersHandler_Handle(t *testing.T) {
 
 	mongoContainer = utils.TestWithMongo(t, ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
-
 	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	stackKafkaConfig = event.TestTopicConfigs(stackTopic, brokers...)
 	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
@@ -61,12 +60,9 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
 	eventBus := event.NewInternalEventBus()
-	stackTopicReader := event.NewTopicReader(stackKafkaConfig, eventBus)
 	orderCommandsHandler := NewHandler(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, kitchenStack)
 
 	eventBus.AddHandler(orderCommandsHandler)
-	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
-
 	kitchenStack.Add("fries")
 	kitchenStack.Add("hamburger")
 
@@ -79,6 +75,9 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 		"itemName": "fries",
 		"quantity": 1,
 	})
+
+	stackTopicReader := event.NewTopicReader(stackKafkaConfig, eventBus)
+	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 
 	// when
 	sendItemAddedToStackMessages(t, payload)

@@ -22,7 +22,7 @@ func TestWithKafka(t *testing.T, ctx context.Context) (*kafka.KafkaContainer, []
 	kafkaContainer := tryRunKafkaContainer(t, ctx)
 	brokers, err := kafkaContainer.Brokers(ctx)
 	if err != nil {
-		log.Panicf("KAFKA SETUP: Unable to connect to Cluster and read brokers. %v", err)
+		assert.Failf(t, "KAFKA SETUP: Unable to connect to Cluster and read brokers. %v", err.Error())
 	}
 
 	t.Log("✅✅✅ Kafka Container is Up.... Brokers: ", brokers, ": ✅✅✅")
@@ -91,7 +91,7 @@ func GetMongoDbFrom(t *testing.T, m *mongodb.MongoDBContainer) *mongo.Database {
 func TerminateMongo(t *testing.T, mongodbContainer *mongodb.MongoDBContainer) {
 	ctx := context.Background()
 
-	log.Print("Terminating MongoDB....")
+	t.Log("Terminating MongoDB....")
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {
 		assert.Failf(t, "Error while terminating Mongo Container", err.Error())
@@ -101,7 +101,7 @@ func TerminateMongo(t *testing.T, mongodbContainer *mongodb.MongoDBContainer) {
 func TerminateKafka(t *testing.T, kafkaContainer *kafka.KafkaContainer) {
 	ctx := context.Background()
 
-	log.Print("Terminating Kafka")
+	t.Log("Terminating Kafka")
 	if err := kafkaContainer.Terminate(ctx); err != nil {
 		assert.Fail(t, "Error while terminating Kafka Container")
 	}

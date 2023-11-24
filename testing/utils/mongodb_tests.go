@@ -34,11 +34,8 @@ func tryRunMongoContainer(t *testing.T, ctx context.Context) *mongodb.MongoDBCon
 	attempt := 1
 	for {
 		if err != nil && attempt < 4 {
-			time.Sleep(250 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			attempt++
-			if err = mongodbContainer.Terminate(ctx); err != nil {
-				assert.Failf(t, "MongoDB SETUP: Unable to Terminate MongoDB when trying to RunContainer. %v", err.Error())
-			}
 			mongodbContainer, err = mongodb.RunContainer(ctx, testcontainers.WithImage("mongo:6"))
 		}
 		if err != nil && attempt == 4 {
@@ -58,7 +55,7 @@ func tryRunKafkaContainer(t *testing.T, ctx context.Context) *kafka.KafkaContain
 	for {
 		if err != nil && attempt < 4 {
 			t.Log("KAFKA SETUP: RunContainer attempt", attempt)
-			time.Sleep(250 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			attempt++
 			kafkaContainer, err = kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
 		}

@@ -28,14 +28,18 @@ var (
 
 func TestOrdersHandler_Handle(t *testing.T) {
 	ctx := context.Background()
+
 	mongoContainer = utils.TestWithMongo(t, ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
+
 	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	stackKafkaConfig = event.TestTopicConfigs(stackTopic, brokers...)
 	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
+
 	database = utils.GetMongoDbFrom(t, mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
+
 	t.Run("should pack item when stack event occurred", shouldPackPreparedItemWhenEvenFromStackOccurred)
 
 	t.Cleanup(func() {
@@ -87,7 +91,7 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 			return
 		}
 
-		if checkCnt > 10 {
+		if checkCnt > 6 {
 			assert.Fail(t, "Order Status not changed to Ready")
 			return
 		}

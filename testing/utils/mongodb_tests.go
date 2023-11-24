@@ -57,11 +57,9 @@ func tryRunKafkaContainer(t *testing.T, ctx context.Context) *kafka.KafkaContain
 	attempt := 1
 	for {
 		if err != nil && attempt < 4 {
+			t.Log("KAFKA SETUP: RunContainer attempt", attempt)
 			time.Sleep(250 * time.Millisecond)
 			attempt++
-			if err = kafkaContainer.Terminate(ctx); err != nil {
-				assert.Failf(t, "KAFKA SETUP: Unable to Terminate Kafka cluster when trying to RunContainer. %v", err.Error())
-			}
 			kafkaContainer, err = kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
 		}
 		if err != nil && attempt == 4 {

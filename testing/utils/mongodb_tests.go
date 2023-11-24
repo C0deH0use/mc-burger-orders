@@ -2,33 +2,34 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	kafkago "github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/kafka"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"testing"
 	"time"
 )
 
-func TestWithMongo(ctx context.Context) *mongodb.MongoDBContainer {
-	return tryRunMongoContainer(ctx)
+func TestWithMongo(t *testing.T, ctx context.Context) *mongodb.MongoDBContainer {
+	return tryRunMongoContainer(t, ctx)
 }
 
-func TestWithKafka(ctx context.Context) (*kafka.KafkaContainer, []string) {
-	kafkaContainer := tryRunKafkaContainer(ctx)
+func TestWithKafka(t *testing.T, ctx context.Context) (*kafka.KafkaContainer, []string) {
+	kafkaContainer := tryRunKafkaContainer(t, ctx)
 	brokers, err := kafkaContainer.Brokers(ctx)
 	if err != nil {
 		log.Panicf("KAFKA SETUP: Unable to connect to Cluster and read brokers. %v", err)
 	}
 
-	log.Print("✅✅✅ Kafka Container is Up.... Brokers: ", brokers, ": ✅✅✅")
+	t.Log("✅✅✅ Kafka Container is Up.... Brokers: ", brokers, ": ✅✅✅")
 	return kafkaContainer, brokers
 }
 
-func tryRunMongoContainer(ctx context.Context) *mongodb.MongoDBContainer {
+func tryRunMongoContainer(t *testing.T, ctx context.Context) *mongodb.MongoDBContainer {
 	mongodbContainer, err := mongodb.RunContainer(ctx, testcontainers.WithImage("mongo:6"))
 	attempt := 1
 	for {
@@ -36,12 +37,12 @@ func tryRunMongoContainer(ctx context.Context) *mongodb.MongoDBContainer {
 			time.Sleep(250 * time.Millisecond)
 			attempt++
 			if err = mongodbContainer.Terminate(ctx); err != nil {
-				log.Panicf("MongoDB SETUP: Unable to Terminate MongoDB when trying to RunContainer. %v", err)
+				assert.Failf(t, "MongoDB SETUP: Unable to Terminate MongoDB when trying to RunContainer. %v", err.Error())
 			}
 			mongodbContainer, err = mongodb.RunContainer(ctx, testcontainers.WithImage("mongo:6"))
 		}
 		if err != nil && attempt == 4 {
-			log.Panicf("MONGO SETUP: Unable to Start MongoDB. %v", err)
+			assert.Failf(t, "MONGO SETUP: Unable to Start MongoDB. %v", err.Error())
 		} else {
 			break
 		}
@@ -50,7 +51,7 @@ func tryRunMongoContainer(ctx context.Context) *mongodb.MongoDBContainer {
 	return mongodbContainer
 }
 
-func tryRunKafkaContainer(ctx context.Context) *kafka.KafkaContainer {
+func tryRunKafkaContainer(t *testing.T, ctx context.Context) *kafka.KafkaContainer {
 	kafkaContainer, err := kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
 
 	attempt := 1
@@ -59,12 +60,12 @@ func tryRunKafkaContainer(ctx context.Context) *kafka.KafkaContainer {
 			time.Sleep(250 * time.Millisecond)
 			attempt++
 			if err = kafkaContainer.Terminate(ctx); err != nil {
-				log.Panicf("KAFKA SETUP: Unable to Terminate Kafka cluster when trying to RunContainer. %v", err)
+				assert.Failf(t, "KAFKA SETUP: Unable to Terminate Kafka cluster when trying to RunContainer. %v", err.Error())
 			}
 			kafkaContainer, err = kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
 		}
 		if err != nil && attempt == 4 {
-			log.Panicf("KAFKA SETUP: Unable to Start Kafka cluster. %v", err)
+			assert.Failf(t, "KAFKA SETUP: Unable to Start Kafka cluster. %v", err.Error())
 		} else {
 			break
 		}
@@ -73,62 +74,60 @@ func tryRunKafkaContainer(ctx context.Context) *kafka.KafkaContainer {
 	return kafkaContainer
 }
 
-func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
+func GetMongoDbFrom(t *testing.T, m *mongodb.MongoDBContainer) *mongo.Database {
 	ctx := context.Background()
 	endpoint, err := m.ConnectionString(ctx)
 	if err != nil {
-		log.Panicf("MONGO SETUP: Unable to get MongoDB Connection String. %v", err)
+		assert.Failf(t, "MONGO SETUP: Unable to get MongoDB Connection String. %v", err.Error())
 	}
 
 	log.Print("✅✅✅ Mongo Container: ", endpoint, ": ✅✅✅")
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(endpoint))
 	if err != nil {
-		log.Panicf("MONGO SETUP: Unable to create Mongo client from Connection String: %v. %v", endpoint, err)
+		assert.Failf(t, "MONGO SETUP: Unable to create Mongo client from Connection String: %v. %v", endpoint, err)
 	}
 
 	return mongoClient.Database("test-orders-db")
 }
 
-func TerminateMongo(mongodbContainer *mongodb.MongoDBContainer) {
+func TerminateMongo(t *testing.T, mongodbContainer *mongodb.MongoDBContainer) {
 	ctx := context.Background()
 
 	log.Print("Terminating MongoDB....")
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {
-		log.Println("Error while terminating Mongo Container", err)
+		assert.Failf(t, "Error while terminating Mongo Container", err.Error())
 	}
 }
 
-func TerminateKafka(kafkaContainer *kafka.KafkaContainer) {
+func TerminateKafka(t *testing.T, kafkaContainer *kafka.KafkaContainer) {
 	ctx := context.Background()
 
 	log.Print("Terminating Kafka")
 	if err := kafkaContainer.Terminate(ctx); err != nil {
-		log.Println("Error while terminating Kafka Container", err)
+		assert.Fail(t, "Error while terminating Kafka Container")
 	}
 }
 
-func TerminateKafkaReader(testReader *kafkago.Reader) {
+func TerminateKafkaReader(t *testing.T, testReader *kafkago.Reader) {
 	err := testReader.Close()
 	if err != nil {
-		log.Panicf("KAFKA TEARDOWN | failure when closing test reader")
+		assert.Fail(t, "KAFKA TEARDOWN | failure when closing test reader")
 	}
 }
 
-func DeleteMany(c *mongo.Collection, filter interface{}) {
+func DeleteMany(t *testing.T, c *mongo.Collection, filter interface{}) {
 	_, err := c.DeleteMany(context.TODO(), filter)
 
 	if err != nil {
-		deleteErr := fmt.Errorf("failed to remove records after the test: %s", err)
-		panic(deleteErr)
+		assert.Failf(t, "failed to remove records after the test: %s", err.Error())
 	}
 }
 
-func InsertMany(c *mongo.Collection, records []interface{}) {
+func InsertMany(t *testing.T, c *mongo.Collection, records []interface{}) {
 	_, err := c.InsertMany(context.TODO(), records)
 	if err != nil {
-		insertErr := fmt.Errorf("failed to insert test orders before the test: %s", err)
-		panic(insertErr)
+		assert.Failf(t, "failed to insert test orders before the test: %s", err.Error())
 	}
 
 }

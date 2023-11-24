@@ -24,7 +24,7 @@ var (
 
 func TestKitchenService_RequestForOrder(t *testing.T) {
 	ctx = context.Background()
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig := event.TestTopicConfigs(topic, brokers...)
 	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
@@ -42,7 +42,7 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 
 	// Clean up the container after
 	t.Cleanup(func() {
-		utils.TerminateKafka(kafkaContainer)
+		utils.TerminateKafka(t, kafkaContainer)
 	})
 }
 

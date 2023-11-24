@@ -28,20 +28,20 @@ var (
 
 func TestOrdersHandler_Handle(t *testing.T) {
 	ctx := context.Background()
-	mongoContainer = utils.TestWithMongo(ctx)
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	mongoContainer = utils.TestWithMongo(t, ctx)
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	stackKafkaConfig = event.TestTopicConfigs(stackTopic, brokers...)
 	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
-	database = utils.GetMongoDbFrom(mongoContainer)
+	database = utils.GetMongoDbFrom(t, mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 	t.Run("should pack item when stack event occurred", shouldPackPreparedItemWhenEvenFromStackOccurred)
 
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
-		utils.TerminateMongo(mongoContainer)
-		utils.TerminateKafka(kafkaContainer)
+		utils.TerminateMongo(t, mongoContainer)
+		utils.TerminateKafka(t, kafkaContainer)
 	})
 }
 
@@ -53,8 +53,8 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 		m.Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "hamburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
-	utils.DeleteMany(collectionDb, bson.D{})
-	utils.InsertMany(collectionDb, expectedOrders)
+	utils.DeleteMany(t, collectionDb, bson.D{})
+	utils.InsertMany(t, collectionDb, expectedOrders)
 
 	eventBus := event.NewInternalEventBus()
 	stackTopicReader := event.NewTopicReader(stackKafkaConfig, eventBus)

@@ -37,12 +37,12 @@ var (
 
 func TestOrderHttpEndpoints(t *testing.T) {
 	ctx := context.Background()
-	mongoContainer = utils.TestWithMongo(ctx)
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	mongoContainer = utils.TestWithMongo(t, ctx)
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
 
-	database = utils.GetMongoDbFrom(mongoContainer)
+	database = utils.GetMongoDbFrom(t, mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
@@ -50,8 +50,8 @@ func TestOrderHttpEndpoints(t *testing.T) {
 
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
-		utils.TerminateMongo(mongoContainer)
-		utils.TerminateKafka(kafkaContainer)
+		utils.TerminateMongo(t, mongoContainer)
+		utils.TerminateKafka(t, kafkaContainer)
 	})
 }
 
@@ -62,8 +62,8 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 		m.Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: m.InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
-	utils.DeleteMany(collectionDb, bson.D{})
-	utils.InsertMany(collectionDb, expectedOrders)
+	utils.DeleteMany(t, collectionDb, bson.D{})
+	utils.InsertMany(t, collectionDb, expectedOrders)
 
 	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, stack.NewEmptyStack())
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -92,8 +92,8 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	assert.Equal(t, "READY", orderOne["status"])
 
 	defer func() {
-		utils.DeleteMany(collectionDb, bson.D{})
-		utils.DeleteMany(orderNumberCollectionDb, bson.D{})
+		utils.DeleteMany(t, collectionDb, bson.D{})
+		utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
 	}()
 }
 
@@ -196,9 +196,9 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 		assert.Equal(t, expectedMessages, actualMessages)
 
 		defer func() {
-			utils.TerminateKafkaReader(kitchenRequestsReader)
-			utils.DeleteMany(collectionDb, bson.D{})
-			utils.DeleteMany(orderNumberCollectionDb, bson.D{})
+			utils.TerminateKafkaReader(t, kitchenRequestsReader)
+			utils.DeleteMany(t, collectionDb, bson.D{})
+			utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
 		}()
 	}
 }

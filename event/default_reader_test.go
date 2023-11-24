@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"math/rand"
 	"mc-burger-orders/command"
 	"mc-burger-orders/testing/utils"
@@ -39,7 +38,7 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 
 func TestDefaultReader(t *testing.T) {
 	ctx := context.Background()
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig = &TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
@@ -51,8 +50,8 @@ func TestDefaultReader(t *testing.T) {
 	t.Run("should consume new message send to topic", shouldConsumeNewMessageSendToTopic)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateKafka(kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateKafka(t, kafkaContainer)
 	})
 }
 
@@ -73,7 +72,7 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 	go sut.SubscribeToTopic(stackMessages)
 
 	// when
-	log.Println("Preparing to send test messages to topic", kafkaConfig.Topic)
+	t.Log("Preparing to send test messages to topic", kafkaConfig.Topic)
 	for msgId := range make([]int, 6) {
 		go sendMessages(t, msgId)
 	}

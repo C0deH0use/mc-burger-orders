@@ -35,7 +35,7 @@ func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool,
 
 func TestStack_Add(t *testing.T) {
 	ctx := context.Background()
-	kafkaContainer, brokers = utils.TestWithKafka(ctx)
+	kafkaContainer, brokers = utils.TestWithKafka(t, ctx)
 
 	log.Printf("Starting Stack Test tests....")
 
@@ -44,7 +44,7 @@ func TestStack_Add(t *testing.T) {
 
 	t.Cleanup(func() {
 		log.Println("Running Clean UP code")
-		utils.TerminateKafka(kafkaContainer)
+		utils.TerminateKafka(t, kafkaContainer)
 	})
 }
 

@@ -66,7 +66,7 @@ func (d *DefaultWriter) SendMessage(rootCtx context.Context, messages ...kafka.M
 			return err
 		}
 
-		log.Warning.Println("Message(s) send successfully on attempt", i)
+		log.Warning.Printf("Message(s) send successfully on attempt %d to topic: %v", i, d.configuration.Topic)
 		break
 	}
 

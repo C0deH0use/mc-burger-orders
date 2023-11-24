@@ -30,27 +30,9 @@ func TestOrdersHandler_Handle(t *testing.T) {
 	ctx := context.Background()
 	mongoContainer = utils.TestWithMongo(ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kitchenRequestsKafkaConfig = &event.TopicConfigs{
-		Topic:             topic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
-	stackKafkaConfig = &event.TopicConfigs{
-		Topic:             stackTopic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
-	orderStatusKafkaConfig = &event.TopicConfigs{
-		Topic:             orderStatusTopic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
+	kitchenRequestsKafkaConfig = event.TestTopicConfigs(topic, brokers...)
+	stackKafkaConfig = event.TestTopicConfigs(stackTopic, brokers...)
+	orderStatusKafkaConfig = event.TestTopicConfigs(orderStatusTopic, brokers...)
 	database = utils.GetMongoDbFrom(mongoContainer)
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")

@@ -63,14 +63,14 @@ func (o *DefaultCommandHandler) Handle(message kafka.Message) (bool, error) {
 		return false, err
 	}
 
-	return o.HandleCommands(commands...)
+	return o.HandleCommands(message, commands...)
 }
 
-func (o *DefaultCommandHandler) HandleCommands(commands ...Command) (bool, error) {
+func (o *DefaultCommandHandler) HandleCommands(message kafka.Message, commands ...Command) (bool, error) {
 	result := false
 	log.Info.Printf("Message will be executed on %d command(s)\n", len(commands))
 	for _, command := range commands {
-		commandResult, err := o.Execute(command)
+		commandResult, err := o.Execute(command, message)
 		if err != nil {
 			log.Error.Println("While executing cmd", command, "following error occurred", err.Error())
 			return false, err

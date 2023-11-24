@@ -47,11 +47,11 @@ func (o *OrdersHandler) Handle(message kafka.Message) (bool, error) {
 		return false, err
 	}
 
-	return o.defaultHandler.HandleCommands(commands...)
+	return o.defaultHandler.HandleCommands(message, commands...)
 }
 
 func (o *OrdersHandler) GetHandledEvents() []string {
-	return []string{stack.ItemAddedToStackEvent, CollectedEvent}
+	return []string{stack.ItemAddedToStackEvent, StatusUpdatedEvent, CollectedEvent}
 }
 
 func (o *OrdersHandler) AddCommands(event string, commands ...command.Command) {
@@ -74,7 +74,18 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 				Repository:     o.repository,
 				KitchenService: o.kitchenService,
 				StatusEmitter:  o.statusEmitter,
-				Message:        message,
+			})
+		}
+	case StatusUpdatedEvent:
+		{
+			orderNumber, err := utils.GetOrderNumber(message)
+			if err != nil {
+				log.Error.Println(err.Error())
+				return nil, err
+			}
+			commands = append(commands, &OrderUpdatedCommand{
+				Repository:  o.repository,
+				OrderNumber: orderNumber,
 			})
 		}
 	case CollectedEvent:

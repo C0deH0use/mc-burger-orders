@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
+	"time"
 )
 
 type TopicConfigs struct {
-	Controller        string
-	Brokers           []string
-	Topic             string
-	NumPartitions     int
-	ReplicationFactor int
-	AutoCreateTopic   bool
+	Controller            string
+	Brokers               []string
+	Topic                 string
+	NumPartitions         int
+	ReplicationFactor     int
+	WaitMaxTime           time.Duration
+	AwaitBetweenReadsTime time.Duration
+	AutoCreateTopic       bool
 }
 
 func (c *TopicConfigs) ConnectToBroker() *kafka.Conn {

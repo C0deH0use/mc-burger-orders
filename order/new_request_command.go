@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"github.com/segmentio/kafka-go"
 	item2 "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	om "mc-burger-orders/order/model"
@@ -19,7 +20,7 @@ type NewRequestCommand struct {
 	NewOrder       om.NewOrder
 }
 
-func (c *NewRequestCommand) Execute(ctx context.Context) (bool, error) {
+func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
 	orderRecord := om.CreateNewOrder(c.OrderNumber, c.NewOrder)
 
 	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)

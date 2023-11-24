@@ -25,13 +25,7 @@ var (
 func TestKitchenService_RequestForOrder(t *testing.T) {
 	ctx = context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig := &event.TopicConfigs{
-		Topic:             topic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
+	kafkaConfig := event.TestTopicConfigs(topic, brokers...)
 	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   brokers,

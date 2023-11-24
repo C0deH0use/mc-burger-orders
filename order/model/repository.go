@@ -175,5 +175,5 @@ func (r *OrderRepositoryImpl) FetchByMissingItem(ctx context.Context, itemName s
 		}
 	}
 
-	return dbRecords, nil
+	return orders, nil
 }

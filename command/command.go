@@ -2,8 +2,9 @@ package command
 
 import (
 	"context"
+	"github.com/segmentio/kafka-go"
 )
 
 type Command interface {
-	Execute(ctx context.Context) (bool, error)
+	Execute(ctx context.Context, message kafka.Message) (bool, error)
 }

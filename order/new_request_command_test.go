@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
 	m "mc-burger-orders/order/model"
@@ -63,7 +64,7 @@ func Test_CreateNewOrder(t *testing.T) {
 	}
 
 	// when
-	result, err := command.Execute(context.TODO())
+	result, err := command.Execute(context.TODO(), kafka.Message{})
 
 	// then
 	assert.Nil(t, err)
@@ -147,7 +148,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	}
 
 	// when
-	result, err := command.Execute(context.TODO())
+	result, err := command.Execute(context.TODO(), kafka.Message{})
 
 	// then
 	assert.Nil(t, err)
@@ -209,7 +210,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	}
 
 	// when
-	result, err := command.Execute(context.TODO())
+	result, err := command.Execute(context.TODO(), kafka.Message{})
 
 	// then
 	assert.Nil(t, err)

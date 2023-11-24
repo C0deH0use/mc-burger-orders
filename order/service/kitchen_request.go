@@ -46,8 +46,7 @@ func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, q
 		Key:     msgKey,
 		Value:   msgValue,
 	}
-	err = s.SendMessage(ctx, msg)
-	if err != nil {
+	if err = s.SendMessage(ctx, msg); err != nil {
 		return err
 	}
 	return nil

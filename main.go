@@ -17,10 +17,14 @@ func main() {
 	mongoDb := middleware.GetMongoClient()
 	kitchenStack := stack.NewEmptyStack()
 	eventBus := event.NewInternalEventBus()
+
 	stackTopicConfigs := stack.TopicConfigsFromEnv()
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
+
+	kitchenStack.ConfigureWriter(event.NewTopicWriter(stackTopicConfigs))
 	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
+	orderStatusReader := event.NewTopicReader(orderStatusTopicConfigs, eventBus)
 
 	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, kitchenStack)
 
@@ -44,6 +48,7 @@ func main() {
 
 	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
+	go orderStatusReader.SubscribeToTopic(make(chan kafka.Message))
 
 	err = r.Run()
 

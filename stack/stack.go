@@ -54,7 +54,7 @@ func (s *Stack) Add(item string) {
 		log.Warning.Printf("Kitchen Stack | %v +1 => %d", item, 1)
 	}
 
-	go s.sendStackUpdateEvent(item, 1)
+	s.SendStackUpdateEvent(item, 1)
 }
 
 func (s *Stack) AddMany(item string, quantity int) {
@@ -67,7 +67,7 @@ func (s *Stack) AddMany(item string, quantity int) {
 		log.Warning.Printf("Kitchen Stack | %v + %d=> %d", item, quantity, quantity)
 	}
 
-	go s.sendStackUpdateEvent(item, quantity)
+	s.SendStackUpdateEvent(item, quantity)
 }
 
 func (s *Stack) GetCurrent(item string) int {
@@ -94,27 +94,26 @@ func (s *Stack) Take(item string, quantity int) error {
 	return err
 }
 
-func (s *Stack) sendStackUpdateEvent(item string, quantity int) {
+func (s *Stack) SendStackUpdateEvent(item string, quantity int) {
 	if s.writer == nil {
 		log.Warning.Printf("Stack Events emitter not configured yet!")
 		return
 	}
 
-	if kafkaMessage, err := stackUpdatedMessage(item, quantity); err == nil {
-		err = s.writer.SendMessage(context.Background(), kafkaMessage)
-		if err != nil {
+	if kafkaMessage, err := createMessage(item, quantity); err == nil {
+		if err = s.writer.SendMessage(context.Background(), kafkaMessage); err != nil {
 			log.Error.Println("failed to send message to topic", s.writer.TopicName())
 		}
 	}
 }
 
-func stackUpdatedMessage(itemName string, quantity int) (kafka.Message, error) {
+func createMessage(itemName string, quantity int) (kafka.Message, error) {
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, utils2.EventTypeHeader(ItemAddedToStackEvent))
 	items := make([]dto.ItemAdded, 0)
 	items = append(items, dto.ItemAdded{ItemName: itemName, Quantity: quantity})
-	b, err := json.Marshal(items)
 
+	b, err := json.Marshal(items)
 	if err != nil {
 		return kafka.Message{}, err
 	}

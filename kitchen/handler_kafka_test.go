@@ -29,13 +29,7 @@ func TestCommandsHandler_WithKafkaMessages(t *testing.T) {
 	ctx := context.Background()
 	testStack = stack2.NewEmptyStack()
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig = &event.TopicConfigs{
-		Topic:             topic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
+	kafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	eventBus = event.NewInternalEventBus()
 
 	t.Run("should submit new request to worker when message arrives", shouldSubmitItemRequestToWorkerWhenMessageArrives)

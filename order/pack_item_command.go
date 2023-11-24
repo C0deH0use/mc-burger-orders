@@ -17,12 +17,11 @@ type PackItemCommand struct {
 	KitchenService service.KitchenRequestService
 	StatusEmitter  StatusEmitter
 	Stack          *stack.Stack
-	Message        kafka.Message
 }
 
-func (p *PackItemCommand) Execute(ctx context.Context) (bool, error) {
+func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
 	stackMessage := make([]dto.StackItemAddedMessage, 0)
-	err := json.Unmarshal(p.Message.Value, &stackMessage)
+	err := json.Unmarshal(message.Value, &stackMessage)
 	if err != nil {
 		log.Error.Println("could not Unmarshal event message to StackUpdatedMessage", err)
 		return false, err

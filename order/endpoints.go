@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
@@ -56,7 +57,7 @@ func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order m.NewOrder) c
 
 func (e *Endpoints) Setup(r *gin.Engine) {
 	r.GET("/order", e.queryService.FetchOrders)
-	r.PUT("/order", e.newOrderHandler)
+	r.POST("/order", e.newOrderHandler)
 }
 
 func (e *Endpoints) newOrderHandler(c *gin.Context) {
@@ -77,7 +78,7 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 
 	orderNumber := e.queryService.GetNextOrderNumber(c)
 	cmd := e.CreateNewOrderCommand(orderNumber, newOrder)
-	result, err := e.dispatcher.Execute(cmd)
+	result, err := e.dispatcher.Execute(cmd, kafka.Message{})
 
 	if err != nil {
 		log.Error.Println(err)

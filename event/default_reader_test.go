@@ -27,7 +27,7 @@ type StubCommand struct {
 	waitG       *sync.WaitGroup
 }
 
-func (s *StubCommand) Execute(ctx context.Context) (bool, error) {
+func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
 	s.Invocations++
 	s.waitG.Done()
 	return true, nil
@@ -37,7 +37,7 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 	return int64(1010), nil
 }
 
-func TestStackReader(t *testing.T) {
+func TestDefaultReader(t *testing.T) {
 	ctx := context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(ctx)
 	kafkaConfig = &TopicConfigs{

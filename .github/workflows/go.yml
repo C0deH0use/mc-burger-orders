@@ -10,29 +10,67 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+  tests:
+    runs-on: ubuntu-latest-l
+    steps:
+      - uses: actions/checkout@v3
 
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v3.7.0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
 
+      - name: Test except for stack, kitchen
+        run: go test -v $(go list ./... | grep -v ./stack | grep -v ./kitchen )
 
-  end2end:
+  stack-tests:
+    runs-on: ubuntu-latest-l
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: run stack tests
+        run: go test -v ./stack/...
+
+  kitchen-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Run End2End Tests
-        run: go test -v ./...
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: run kitchen tests
+        run: go test -v ./kitchen/...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3.7.0

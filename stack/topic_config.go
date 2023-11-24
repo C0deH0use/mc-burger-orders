@@ -5,6 +5,7 @@ import (
 	"mc-burger-orders/event"
 	"os"
 	"strings"
+	"time"
 )
 
 func TopicConfigsFromEnv() *event.TopicConfigs {
@@ -25,9 +26,11 @@ func TopicConfigsFromEnv() *event.TopicConfigs {
 	}
 
 	return &event.TopicConfigs{
-		Brokers:           kafkaAddress,
-		Topic:             topic,
-		NumPartitions:     numPartitions,
-		ReplicationFactor: replicationFactor,
+		Brokers:               kafkaAddress,
+		Topic:                 topic,
+		NumPartitions:         numPartitions,
+		ReplicationFactor:     replicationFactor,
+		WaitMaxTime:           10 * time.Second,
+		AwaitBetweenReadsTime: 2 * time.Second,
 	}
 }

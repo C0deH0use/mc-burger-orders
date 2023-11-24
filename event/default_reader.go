@@ -5,6 +5,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
 	"mc-burger-orders/utils"
+	"time"
 )
 
 type NewMessageHandler interface {
@@ -33,6 +34,8 @@ func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultRead
 		Partition: 0,
 		MinBytes:  10e3, // 10KB
 		MaxBytes:  10e6, // 10MB
+		MaxWait:   configuration.WaitMaxTime,
+		GroupID:   configuration.Topic,
 	})
 	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
 }
@@ -42,7 +45,8 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 		log.Info.Println("Subscribing to topic", r.configuration.Topic)
 
 		for {
-			go r.ReadMessageFromTopic(context.Background(), msgChan)
+			r.ReadMessageFromTopic(context.Background(), msgChan)
+			time.Sleep(r.configuration.AwaitBetweenReadsTime)
 		}
 	}()
 
@@ -68,10 +72,12 @@ func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan k
 	msg, err := r.ReadMessage(ctx)
 	if err != nil {
 		log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
+		return
 	}
 	eventType, err := utils.GetEventType(msg)
 	if err != nil {
 		log.Error.Println("failed to read event type from message:", err)
+		return
 	}
 
 	log.Warning.Printf("Received messaged for topic: %v, event: %v", msg.Topic, eventType)

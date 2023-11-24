@@ -1,7 +1,9 @@
 issues:
   exclude-rules:
-    - path: 'stack/reader_test.go'
+    - path: 'stack/stack_test.go'
       linters:
         - ineffassign
+        - staticcheck
+        - gosimple
 
-go: '1.21'
+go: '1.21.4'

@@ -1,7 +1,7 @@
 GET localhost:9090/order
 
 ###
-PUT localhost:9090/order
+POST localhost:9090/order
 Content-Type: application/json
 
 {

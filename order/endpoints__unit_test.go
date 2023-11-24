@@ -3,6 +3,7 @@ package order
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	command2 "mc-burger-orders/command"
@@ -30,7 +31,7 @@ type FakeCommandDispatcher struct {
 	methodCalled bool
 }
 
-func (e *FakeCommandDispatcher) Execute(c command2.Command) (bool, error) {
+func (e *FakeCommandDispatcher) Execute(c command2.Command, message kafka.Message) (bool, error) {
 	e.methodCalled = true
 	return e.result, nil
 }
@@ -70,7 +71,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	bodySlice, _ := json.Marshal(order)
 	reqBody := bytes.NewBuffer(bodySlice)
 
-	req, _ := http.NewRequest("PUT", "/order", reqBody)
+	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
 	repository := stubs.GivenRepository()
@@ -117,7 +118,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	bodySlice, _ := json.Marshal(order)
 	reqBody := bytes.NewBuffer(bodySlice)
 
-	req, _ := http.NewRequest("PUT", "/order", reqBody)
+	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
 	repository := stubs.GivenRepository()
@@ -162,7 +163,7 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	bodySlice, _ := json.Marshal(order)
 	reqBody := bytes.NewBuffer(bodySlice)
 
-	req, _ := http.NewRequest("PUT", "/order", reqBody)
+	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
 	repository := stubs.GivenRepository()

@@ -69,7 +69,6 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
-		Message:        message,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -80,7 +79,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.True(t, result, "Successful result")
@@ -151,7 +150,6 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
-		Message:        message,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -164,7 +162,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.True(t, result, "Successful result")
@@ -263,11 +261,10 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
-		Message:        message,
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.True(t, result, "Successful result")
@@ -369,11 +366,10 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
-		Message:        message,
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.True(t, result, "Successful result")
@@ -431,7 +427,6 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
-		Message:        message,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -441,7 +436,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.True(t, result, "Successful result")
@@ -485,11 +480,10 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 		Repository:     repositoryStub,
 		StatusEmitter:  statusEmitter,
 		KitchenService: kitchenService,
-		Message:        message,
 	}
 
 	// when
-	result, err := sut.Execute(context.Background())
+	result, err := sut.Execute(context.Background(), message)
 
 	// then
 	assert.False(t, result)

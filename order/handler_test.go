@@ -76,11 +76,11 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 		"quantity": 1,
 	})
 
-	stackTopicReader := event.NewTopicReader(stackKafkaConfig, eventBus)
-	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
+	sendItemAddedToStackMessages(t, payload)
 
 	// when
-	sendItemAddedToStackMessages(t, payload)
+	stackTopicReader := event.NewTopicReader(stackKafkaConfig, eventBus)
+	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 
 	// then
 	checkCnt := 0

@@ -21,6 +21,7 @@ type DefaultReader struct {
 }
 
 func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultReader {
+	log.Warning.Printf("Creating a new topicReader for topic: %v", configuration.Topic)
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}

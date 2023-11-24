@@ -59,10 +59,12 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
+	t.Log("Creating EventBUS")
 	eventBus := event.NewInternalEventBus()
-	orderCommandsHandler := NewHandler(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, kitchenStack)
+	ordersHandler := NewHandler(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, kitchenStack)
 
-	eventBus.AddHandler(orderCommandsHandler)
+	t.Log("Configuring EventBUS with order handler")
+	eventBus.AddHandler(ordersHandler)
 	kitchenStack.Add("fries")
 	kitchenStack.Add("hamburger")
 
@@ -76,6 +78,7 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 		"quantity": 1,
 	})
 
+	t.Log("Configuring EventBUS with order handler")
 	sendItemAddedToStackMessages(t, payload)
 
 	// when
@@ -101,6 +104,7 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 }
 
 func sendItemAddedToStackMessages(t *testing.T, requestPayload []map[string]any) {
+	t.Log("Configure TestWriter for topic", stackKafkaConfig.Topic)
 	writer := event.NewTopicWriter(stackKafkaConfig)
 
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
@@ -117,6 +121,7 @@ func sendItemAddedToStackMessages(t *testing.T, requestPayload []map[string]any)
 	}
 
 	// when
+	t.Log("Sending TestMessage to topic")
 	err := writer.SendMessage(context.Background(), msg)
 	if err != nil {
 		assert.Fail(t, "failed to send message to topic", stackKafkaConfig.Topic)

@@ -5,7 +5,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
-	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
@@ -18,7 +17,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	expectedOrderNumber := int64(1010)
 
-	newOrder := m.NewOrder{
+	newOrder := NewOrder{
 		CustomerId: 10,
 		Items: []i.Item{
 			{
@@ -45,10 +44,10 @@ func Test_CreateNewOrder(t *testing.T) {
 	stubKitchenService := stubs2.NewStubService()
 	stubStatusEmitter := stubs2.NewStubService()
 	stubRepository := stubs2.GivenRepository()
-	expectedOrder := &m.Order{
+	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
-		Status:      m.Requested,
+		Status:      Requested,
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
 	}
@@ -76,7 +75,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	assert.Equal(t, expectedOrderNumber, updateOrderArg.OrderNumber)
 	assert.Equal(t, 10, updateOrderArg.CustomerId)
-	assert.Equal(t, m.OrderStatus("READY"), updateOrderArg.Status)
+	assert.Equal(t, OrderStatus("READY"), updateOrderArg.Status)
 
 	assert.Equal(t, 2, len(updateOrderArg.Items))
 
@@ -91,7 +90,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
-	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.Ready)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(Ready)))
 
 }
 
@@ -102,7 +101,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	expectedOrderNumber := int64(1010)
 
-	newOrder := m.NewOrder{
+	newOrder := NewOrder{
 		CustomerId: 10,
 		Items: []i.Item{
 			{
@@ -128,10 +127,10 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	stubKitchenService := stubs2.NewStubService()
 	stubStatusEmitter := stubs2.NewStubService()
-	expectedOrder := &m.Order{
+	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
-		Status:      m.Requested,
+		Status:      Requested,
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
 	}
@@ -161,7 +160,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, m.OrderStatus("IN_PROGRESS"), order.Status)
+	assert.Equal(t, OrderStatus("IN_PROGRESS"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 
@@ -176,14 +175,14 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
-	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
 }
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	// given
 	s := stack.NewEmptyStack()
 	expectedOrderNumber := int64(1010)
-	newOrder := m.NewOrder{
+	newOrder := NewOrder{
 		CustomerId: 10,
 		Items: []i.Item{
 			{
@@ -223,7 +222,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)
 	assert.Equal(t, 10, order.CustomerId)
-	assert.Equal(t, m.OrderStatus("REQUESTED"), order.Status)
+	assert.Equal(t, OrderStatus("REQUESTED"), order.Status)
 
 	assert.Equal(t, 2, len(order.Items))
 

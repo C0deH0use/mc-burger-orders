@@ -7,14 +7,12 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
 	"mc-burger-orders/order/dto"
-	om "mc-burger-orders/order/model"
-	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
 )
 
 type PackItemCommand struct {
-	Repository     om.PackingOrderItemsRepository
-	KitchenService service.KitchenRequestService
+	Repository     PackingOrderItemsRepository
+	KitchenService KitchenRequestService
 	StatusEmitter  StatusEmitter
 	Stack          *stack.Stack
 }

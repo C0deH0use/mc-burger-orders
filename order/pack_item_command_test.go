@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
-	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
@@ -90,10 +89,10 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	upsertArgs := repositoryStub.GetUpsertArgs()
 	assert.Len(t, upsertArgs, 2)
 
-	assert.Equal(t, upsertArgs[0].Status, m.InProgress)
+	assert.Equal(t, upsertArgs[0].Status, InProgress)
 	assert.Len(t, upsertArgs[0].PackedItems, 3)
 
-	assert.Equal(t, upsertArgs[1].Status, m.InProgress)
+	assert.Equal(t, upsertArgs[1].Status, InProgress)
 	assert.Len(t, upsertArgs[1].PackedItems, 4)
 	assert.Equal(t, upsertArgs[1].PackedItems, expectedPackedItems)
 
@@ -108,7 +107,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, statusEmitter.CalledCnt())
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
 }
 
 func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
@@ -173,16 +172,16 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	upsertArgs := repositoryStub.GetUpsertArgs()
 	assert.Len(t, upsertArgs, 4)
 
-	assert.Equal(t, upsertArgs[0].Status, m.InProgress)
+	assert.Equal(t, upsertArgs[0].Status, InProgress)
 	assert.Len(t, upsertArgs[0].PackedItems, 3)
 
-	assert.Equal(t, upsertArgs[1].Status, m.InProgress)
+	assert.Equal(t, upsertArgs[1].Status, InProgress)
 	assert.Len(t, upsertArgs[1].PackedItems, 4)
 
-	assert.Equal(t, upsertArgs[2].Status, m.InProgress)
+	assert.Equal(t, upsertArgs[2].Status, InProgress)
 	assert.Len(t, upsertArgs[2].PackedItems, 5)
 
-	assert.Equal(t, upsertArgs[3].Status, m.Ready)
+	assert.Equal(t, upsertArgs[3].Status, Ready)
 	assert.Equal(t, upsertArgs[3].PackedItems, expectedPackedItems)
 
 	// and
@@ -196,8 +195,8 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 	// and
 	assert.Equal(t, 2, statusEmitter.CalledCnt())
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.Ready)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(Ready)))
 }
 
 func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
@@ -224,12 +223,12 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 
 	secondOrderNumber := int64(1012)
 	thirdOrderNumber := int64(1013)
-	existingOrders := []*m.Order{
+	existingOrders := []*Order{
 		givenExistingOrder(),
 		{
 			OrderNumber: secondOrderNumber,
 			CustomerId:  10,
-			Status:      m.Requested,
+			Status:      Requested,
 			Items: []i.Item{
 				{Name: hamburger, Quantity: 2},
 				{Name: cheeseburger, Quantity: 2},
@@ -238,7 +237,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 		{
 			OrderNumber: thirdOrderNumber,
 			CustomerId:  10,
-			Status:      m.InProgress,
+			Status:      InProgress,
 			Items: []i.Item{
 				{Name: hamburger, Quantity: 2},
 				{Name: cheeseburger, Quantity: 2},
@@ -274,19 +273,19 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	assert.Len(t, upsertArgs, 8)
 
 	firstOrder := getLastOrder(expectedOrderNumber, upsertArgs...)
-	assert.Equal(t, firstOrder.Status, m.InProgress)
+	assert.Equal(t, firstOrder.Status, InProgress)
 	assert.Equal(t, 0, getMissingItemsCount(firstOrder, hamburger))
 	assert.Equal(t, 0, getMissingItemsCount(firstOrder, cheeseburger))
 	assert.Equal(t, 3, getMissingItemsCount(firstOrder, mcSpicy))
 	assert.Equal(t, 0, getMissingItemsCount(firstOrder, spicyStripes))
 
 	secondOrder := getLastOrder(secondOrderNumber, upsertArgs...)
-	assert.Equal(t, secondOrder.Status, m.Ready)
+	assert.Equal(t, secondOrder.Status, Ready)
 	assert.Equal(t, 0, getMissingItemsCount(secondOrder, hamburger))
 	assert.Equal(t, 0, getMissingItemsCount(secondOrder, cheeseburger))
 
 	thirdOrder := getLastOrder(thirdOrderNumber, upsertArgs...)
-	assert.Equal(t, thirdOrder.Status, m.Ready)
+	assert.Equal(t, thirdOrder.Status, Ready)
 	assert.Equal(t, 0, getMissingItemsCount(thirdOrder, hamburger))
 	assert.Equal(t, 0, getMissingItemsCount(thirdOrder, cheeseburger))
 	assert.Equal(t, 0, getMissingItemsCount(thirdOrder, spicyStripes))
@@ -302,8 +301,8 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 
 	// and
 	assert.Equal(t, 4, statusEmitter.CalledCnt())
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.Ready)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(Ready)))
 }
 
 func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
@@ -320,11 +319,11 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 
 	secondOrderNumber := int64(1012)
 	thirdOrderNumber := int64(1013)
-	existingOrders := []*m.Order{
+	existingOrders := []*Order{
 		{
 			OrderNumber: expectedOrderNumber,
 			CustomerId:  10,
-			Status:      m.Requested,
+			Status:      Requested,
 			Items:       orderItems,
 			PackedItems: []i.Item{
 				{Name: cheeseburger, Quantity: 1},
@@ -334,7 +333,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		{
 			OrderNumber: secondOrderNumber,
 			CustomerId:  10,
-			Status:      m.Requested,
+			Status:      Requested,
 			Items: []i.Item{
 				{Name: hamburger, Quantity: 2},
 				{Name: spicyStripes, Quantity: 8},
@@ -343,7 +342,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		{
 			OrderNumber: thirdOrderNumber,
 			CustomerId:  10,
-			Status:      m.InProgress,
+			Status:      InProgress,
 			Items: []i.Item{
 				{Name: hamburger, Quantity: 2},
 				{Name: cheeseburger, Quantity: 2},
@@ -379,15 +378,15 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	assert.Len(t, upsertArgs, 3)
 
 	firstOrder := getLastOrder(expectedOrderNumber, upsertArgs...)
-	assert.Equal(t, firstOrder.Status, m.InProgress)
+	assert.Equal(t, firstOrder.Status, InProgress)
 	assert.Equal(t, 0, getMissingItemsCount(firstOrder, spicyStripes))
 
 	secondOrder := getLastOrder(secondOrderNumber, upsertArgs...)
-	assert.Equal(t, secondOrder.Status, m.InProgress)
+	assert.Equal(t, secondOrder.Status, InProgress)
 	assert.Equal(t, 0, getMissingItemsCount(secondOrder, spicyStripes))
 
 	thirdOrder := getLastOrder(thirdOrderNumber, upsertArgs...)
-	assert.Equal(t, thirdOrder.Status, m.InProgress)
+	assert.Equal(t, thirdOrder.Status, InProgress)
 	assert.Equal(t, 6, getMissingItemsCount(thirdOrder, spicyStripes))
 
 	// and
@@ -399,7 +398,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 
 	// and
 	assert.Equal(t, 2, statusEmitter.CalledCnt())
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
 }
 
 func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
@@ -448,7 +447,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	assert.Len(t, upsertArgs, 1)
 
 	actualOrder := upsertArgs[0]
-	assert.Equal(t, actualOrder.Status, m.InProgress)
+	assert.Equal(t, actualOrder.Status, InProgress)
 	assert.Equal(t, actualOrder.PackedItems, expectedPackedItems)
 
 	// and
@@ -461,7 +460,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, statusEmitter.CalledCnt())
-	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(m.InProgress)))
+	assert.True(t, statusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
 }
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
@@ -499,11 +498,11 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	assert.Equal(t, 0, statusEmitter.CalledCnt())
 }
 
-func givenExistingOrder() *m.Order {
-	return &m.Order{
+func givenExistingOrder() *Order {
+	return &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
-		Status:      m.Requested,
+		Status:      Requested,
 		Items:       orderItems,
 		PackedItems: []i.Item{
 			{Name: cheeseburger, Quantity: 1},
@@ -530,8 +529,8 @@ func givenKafkaMessage(t *testing.T, messageValue []map[string]any) kafka.Messag
 	return message
 }
 
-func getLastOrder(orderNumber int64, orders ...m.Order) m.Order {
-	ordersPerNumber := make([]m.Order, 0)
+func getLastOrder(orderNumber int64, orders ...Order) Order {
+	ordersPerNumber := make([]Order, 0)
 
 	for _, o := range orders {
 		if o.OrderNumber == orderNumber {
@@ -542,7 +541,7 @@ func getLastOrder(orderNumber int64, orders ...m.Order) m.Order {
 	return ordersPerNumber[len(ordersPerNumber)-1]
 }
 
-func getMissingItemsCount(order m.Order, itemName string) int {
+func getMissingItemsCount(order Order, itemName string) int {
 	if val, err := order.GetMissingItemsCount(itemName); err == nil {
 		return val
 	}

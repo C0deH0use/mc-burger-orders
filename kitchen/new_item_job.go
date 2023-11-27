@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
-	"mc-burger-orders/order/utils"
+	"mc-burger-orders/order"
 )
 
 func (h *Handler) CreateNewItem(message kafka.Message) (bool, error) {
@@ -14,7 +14,7 @@ func (h *Handler) CreateNewItem(message kafka.Message) (bool, error) {
 		log.Error.Println(err.Error())
 		return false, err
 	}
-	orderNumber, err := utils.GetOrderNumber(message)
+	orderNumber, err := order.GetOrderNumber(message)
 	if err != nil {
 		orderNumber = -1
 	}

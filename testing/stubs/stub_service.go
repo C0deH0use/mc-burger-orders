@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"log"
-	m "mc-burger-orders/order/model"
-	"mc-burger-orders/order/utils"
+	m "mc-burger-orders/order"
 )
 
 type StubService struct {
@@ -70,7 +69,7 @@ func KafkaMessageMatchingFnc(orderNumber int64, messageVal []map[string]any) fun
 				messages := sendMessageArg.([]kafka.Message)
 
 				for _, kafkaMsg := range messages {
-					number, err := utils.GetOrderNumber(kafkaMsg)
+					number, err := m.GetOrderNumber(kafkaMsg)
 					if orderNumber == -1 && err != nil {
 						if string(kafkaMsg.Value) == expectedMessageValue {
 							return true

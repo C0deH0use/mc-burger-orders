@@ -7,9 +7,6 @@ import (
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
-	m "mc-burger-orders/order/model"
-	"mc-burger-orders/order/service"
-	"mc-burger-orders/order/utils"
 	"mc-burger-orders/stack"
 	utils2 "mc-burger-orders/utils"
 )
@@ -17,17 +14,17 @@ import (
 type OrdersHandler struct {
 	defaultHandler command.DefaultCommandHandler
 	stack          *stack.Stack
-	queryService   m.OrderQueryService
-	repository     m.OrderRepository
+	queryService   OrderQueryService
+	repository     OrderRepository
 	statusEmitter  StatusEmitter
-	kitchenService service.KitchenRequestService
+	kitchenService KitchenRequestService
 }
 
 func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) *OrdersHandler {
-	repository := m.NewRepository(database)
-	orderNumberRepository := m.NewOrderNumberRepository(database)
-	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
-	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
+	repository := NewRepository(database)
+	orderNumberRepository := NewOrderNumberRepository(database)
+	queryService := OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
+	kitchenService := NewKitchenServiceFrom(kitchenTopicConfigs)
 	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
 	return &OrdersHandler{
@@ -78,7 +75,7 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 		}
 	case StatusUpdatedEvent:
 		{
-			orderNumber, err := utils.GetOrderNumber(message)
+			orderNumber, err := GetOrderNumber(message)
 			if err != nil {
 				log.Error.Println(err.Error())
 				return nil, err
@@ -90,7 +87,7 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 		}
 	case CollectedEvent:
 		{
-			orderNumber, err := utils.GetOrderNumber(message)
+			orderNumber, err := GetOrderNumber(message)
 			if err != nil {
 				log.Error.Println(err.Error())
 				return nil, err

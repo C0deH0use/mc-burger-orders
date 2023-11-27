@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	command2 "mc-burger-orders/command"
 	"mc-burger-orders/middleware"
-	m "mc-burger-orders/order/model"
-	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/stubs"
 	"mc-burger-orders/testing/utils"
@@ -20,9 +18,9 @@ import (
 
 type FakeOrderEndpoints struct {
 	s              *stack.Stack
-	repository     m.OrderRepository
-	queryService   m.OrderQueryService
-	kitchenService service.KitchenRequestService
+	repository     OrderRepository
+	queryService   OrderQueryService
+	kitchenService KitchenRequestService
 	dispatcher     *FakeCommandDispatcher
 }
 
@@ -81,8 +79,8 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),
 		repository:     repository,
-		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
-		kitchenService: &service.KitchenService{},
+		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{result: true},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
@@ -128,8 +126,8 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),
 		repository:     repository,
-		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
-		kitchenService: &service.KitchenService{},
+		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()
@@ -173,8 +171,8 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              stack.NewEmptyStack(),
 		repository:     repository,
-		queryService:   m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
-		kitchenService: &service.KitchenService{},
+		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{},
 	}
 	endpoints := fakeEndpoints.FakeEndpoints()

@@ -3,7 +3,7 @@ package stubs
 import (
 	"context"
 	"encoding/json"
-	m "mc-burger-orders/order/model"
+	m "mc-burger-orders/order"
 )
 
 type StubRepository struct {

@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
-	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/utils"
 	"strconv"
@@ -51,9 +50,9 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	// given
 	kitchenStack := stack.NewEmptyStack()
 	expectedOrders := []interface{}{
-		m.Order{OrderNumber: 999, CustomerId: 10, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
-		m.Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
-		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "hamburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 999, CustomerId: 10, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "hamburger", Quantity: 3}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
@@ -88,7 +87,7 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	checkCnt := 0
 	for {
 		order := fetchByOrderNumber(t, 1000)
-		if order.Status == m.Ready {
+		if order.Status == Ready {
 			return
 		}
 
@@ -127,14 +126,14 @@ func sendItemAddedToStackMessages(t *testing.T, requestPayload []map[string]any)
 	}
 }
 
-func fetchByOrderNumber(t *testing.T, orderNumber int64) *m.Order {
+func fetchByOrderNumber(t *testing.T, orderNumber int64) *Order {
 	filter := bson.D{{Key: "orderNumber", Value: orderNumber}}
 	result := collectionDb.FindOne(context.Background(), filter)
 	if result.Err() != nil {
 		assert.Fail(t, "failed to fetch record")
 	}
 
-	var order *m.Order
+	var order *Order
 	if err := result.Decode(&order); err != nil {
 		assert.Fail(t, "failed to decoded record")
 	}

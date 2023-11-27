@@ -1,4 +1,4 @@
-package model
+package order
 
 import (
 	"mc-burger-orders/kitchen/item"

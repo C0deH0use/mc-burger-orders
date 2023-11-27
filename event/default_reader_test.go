@@ -1,14 +1,12 @@
-package stack
+package event
 
 import (
 	"context"
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"math/rand"
 	"mc-burger-orders/command"
-	"mc-burger-orders/event"
 	"mc-burger-orders/testing/utils"
 	"strconv"
 	"sync"
@@ -17,8 +15,8 @@ import (
 )
 
 var (
-	kafkaConfig *event.TopicConfigs
-	sut         *event.DefaultReader
+	kafkaConfig *TopicConfigs
+	sut         *DefaultReader
 	topic       = fmt.Sprintf("test-stack-updates-%d", rand.Intn(100))
 	eventType   = "test-event"
 )
@@ -28,7 +26,7 @@ type StubCommand struct {
 	waitG       *sync.WaitGroup
 }
 
-func (s *StubCommand) Execute(ctx context.Context) (bool, error) {
+func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
 	s.Invocations++
 	s.waitG.Done()
 	return true, nil
@@ -38,10 +36,11 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 	return int64(1010), nil
 }
 
-func TestStackReader(t *testing.T) {
+func TestIntegration_DefaultReader(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig = &event.TopicConfigs{
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
+	kafkaConfig = &TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
 		NumPartitions:     1,
@@ -52,8 +51,8 @@ func TestStackReader(t *testing.T) {
 	t.Run("should consume new message send to topic", shouldConsumeNewMessageSendToTopic)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateKafka(kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 
@@ -64,17 +63,17 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 	waitGroup.Add(6)
 	stubCommand := StubCommand{Invocations: 0, waitG: waitGroup}
 
-	eventBus := event.NewInternalEventBus()
+	eventBus := NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
 	commandHandler.AddCommands(eventType, &stubCommand)
 
 	eventBus.AddHandler(commandHandler)
 
-	sut = event.NewTopicReader(kafkaConfig, eventBus)
+	sut = NewTopicReader(kafkaConfig, eventBus)
 	go sut.SubscribeToTopic(stackMessages)
 
 	// when
-	log.Println("Preparing to send test messages to topic", kafkaConfig.Topic)
+	t.Log("Preparing to send test messages to topic", kafkaConfig.Topic)
 	for msgId := range make([]int, 6) {
 		go sendMessages(t, msgId)
 	}
@@ -86,7 +85,7 @@ func shouldConsumeNewMessageSendToTopic(t *testing.T) {
 }
 
 func sendMessages(t *testing.T, msgId int) {
-	writer := event.NewTopicWriter(kafkaConfig)
+	writer := NewTopicWriter(kafkaConfig)
 
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(1010, 10))})

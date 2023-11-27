@@ -4,19 +4,24 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
+	"time"
 )
 
 type TopicConfigs struct {
-	Controller        string
-	Brokers           []string
-	Topic             string
-	NumPartitions     int
-	ReplicationFactor int
-	AutoCreateTopic   bool
+	Controller            string
+	Brokers               []string
+	Topic                 string
+	NumPartitions         int
+	ReplicationFactor     int
+	WaitMaxTime           time.Duration
+	AwaitBetweenReadsTime time.Duration
+	AutoCreateTopic       bool
 }
 
 func (c *TopicConfigs) ConnectToBroker() *kafka.Conn {
 	brokerAddress := c.Brokers[0]
+
+	log.Warning.Printf("Connecting to broker `%v` from topic: %v", c.Brokers, c.Topic)
 	conn, err := kafka.Dial("tcp", brokerAddress)
 	if err != nil {
 		log.Error.Fatal("failed to dial leader:", brokerAddress, err)
@@ -46,6 +51,7 @@ func (c *TopicConfigs) CreateTopic(conn *kafka.Conn) {
 
 	topicConfig := kafka.TopicConfig{Topic: c.Topic, NumPartitions: c.NumPartitions, ReplicationFactor: c.ReplicationFactor}
 
+	log.Warning.Printf("Creating new topic: %v. Configs: %+v", c.Brokers, topicConfig)
 	err := conn.CreateTopics(topicConfig)
 	if err != nil {
 		log.Error.Panicln("failed to create new Topic", topicConfig, ".Error reason:", err.Error())

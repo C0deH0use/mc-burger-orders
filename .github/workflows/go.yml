@@ -10,22 +10,67 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+  tests:
+    runs-on: ubuntu-latest-l
+    steps:
+      - uses: actions/checkout@v3
 
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v3.7.0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: Test except for order, stack, kitchen, event
+        run: go test -short -v ./...
+
+  integration-tests:
+    runs-on: ubuntu-latest-l
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: run stack tests
+        run:  go test -v -run ".Integration" $(go list ./... | grep -v ./order )
+
+  order-integration-tests:
+    runs-on: ubuntu-latest-l
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: run stack tests
+        run:  go test -v -run ".Integration" ./order/...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.4'
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3.7.0

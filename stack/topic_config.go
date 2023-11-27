@@ -5,17 +5,18 @@ import (
 	"mc-burger-orders/event"
 	"os"
 	"strings"
+	"time"
 )
 
 func TopicConfigsFromEnv() *event.TopicConfigs {
 	kafkaAddressEnvVal := os.Getenv("KAFKA_ADDRESS")
 	kafkaAddress := strings.Split(kafkaAddressEnvVal, ",")
-	topic := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NAME")
+	topic := os.Getenv("KAFKA_TOPICS__STACK_TOPIC_NAME")
 
 	numPartitions := 3
-	numPartitionsVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NUMBER_OF_PARTITIONS")
+	numPartitionsVal := os.Getenv("KAFKA_TOPICS__STACK_TOPIC_NUMBER_OF_PARTITIONS")
 	replicationFactor := 1
-	replicationFactorVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_REPLICA_FACTOR")
+	replicationFactorVal := os.Getenv("KAFKA_TOPICS__STACK_TOPIC_REPLICA_FACTOR")
 
 	if len(numPartitionsVal) > 0 {
 		numPartitions = cast.ToInt(numPartitionsVal)
@@ -25,9 +26,11 @@ func TopicConfigsFromEnv() *event.TopicConfigs {
 	}
 
 	return &event.TopicConfigs{
-		Brokers:           kafkaAddress,
-		Topic:             topic,
-		NumPartitions:     numPartitions,
-		ReplicationFactor: replicationFactor,
+		Brokers:               kafkaAddress,
+		Topic:                 topic,
+		NumPartitions:         numPartitions,
+		ReplicationFactor:     replicationFactor,
+		WaitMaxTime:           10 * time.Second,
+		AwaitBetweenReadsTime: 2 * time.Second,
 	}
 }

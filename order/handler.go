@@ -7,7 +7,6 @@ import (
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
-	c "mc-burger-orders/order/command"
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/order/service"
 	"mc-burger-orders/order/utils"
@@ -15,39 +14,51 @@ import (
 	utils2 "mc-burger-orders/utils"
 )
 
-type CommandsHandler struct {
-	command.DefaultCommandHandler
+type OrdersHandler struct {
+	defaultHandler command.DefaultCommandHandler
 	stack          *stack.Stack
 	queryService   m.OrderQueryService
 	repository     m.OrderRepository
+	statusEmitter  StatusEmitter
 	kitchenService service.KitchenRequestService
 }
 
-func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, s *stack.Stack) *CommandsHandler {
+func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) *OrdersHandler {
 	repository := m.NewRepository(database)
 	orderNumberRepository := m.NewOrderNumberRepository(database)
 	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
 	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
+	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
-	return &CommandsHandler{
+	return &OrdersHandler{
 		stack:          s,
 		queryService:   queryService,
 		repository:     repository,
 		kitchenService: kitchenService,
+		statusEmitter:  statusEmitter,
+		defaultHandler: command.DefaultCommandHandler{},
 	}
 }
 
-func (o *CommandsHandler) GetHandledEvents() []string {
-	return []string{stack.ItemAddedToStackEvent, CollectedEvent}
-}
-
-func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command, error) {
-	orderNumber, err := utils.GetOrderNumber(message)
+func (o *OrdersHandler) Handle(message kafka.Message) (bool, error) {
+	commands, err := o.GetCommands(message)
 	if err != nil {
 		log.Error.Println(err.Error())
-		return nil, err
+		return false, err
 	}
 
+	return o.defaultHandler.HandleCommands(message, commands...)
+}
+
+func (o *OrdersHandler) GetHandledEvents() []string {
+	return []string{stack.ItemAddedToStackEvent, StatusUpdatedEvent, CollectedEvent}
+}
+
+func (o *OrdersHandler) AddCommands(event string, commands ...command.Command) {
+	o.defaultHandler.AddCommands(event, commands...)
+}
+
+func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, error) {
 	eventType, err := utils2.GetEventType(message)
 	if err != nil {
 		log.Error.Println(err.Error())
@@ -58,16 +69,33 @@ func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command,
 	switch eventType {
 	case stack.ItemAddedToStackEvent:
 		{
-			commands = append(commands, &c.PackItemCommand{
+			commands = append(commands, &PackItemCommand{
 				Stack:          o.stack,
 				Repository:     o.repository,
 				KitchenService: o.kitchenService,
-				Message:        message,
+				StatusEmitter:  o.statusEmitter,
+			})
+		}
+	case StatusUpdatedEvent:
+		{
+			orderNumber, err := utils.GetOrderNumber(message)
+			if err != nil {
+				log.Error.Println(err.Error())
+				return nil, err
+			}
+			commands = append(commands, &OrderUpdatedCommand{
+				Repository:  o.repository,
+				OrderNumber: orderNumber,
 			})
 		}
 	case CollectedEvent:
 		{
-			commands = append(commands, &c.OrderCollectedCommand{
+			orderNumber, err := utils.GetOrderNumber(message)
+			if err != nil {
+				log.Error.Println(err.Error())
+				return nil, err
+			}
+			commands = append(commands, &OrderCollectedCommand{
 				Repository:  o.repository,
 				OrderNumber: orderNumber,
 			})
@@ -76,10 +104,8 @@ func (o *CommandsHandler) GetCommands(message kafka.Message) ([]command.Command,
 		{
 			err := fmt.Errorf("handling unknown event message: %s", eventType)
 			log.Error.Println(err)
-			return nil, err
 		}
 	}
 
 	return commands, nil
-
 }

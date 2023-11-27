@@ -1,4 +1,4 @@
-package kitchen
+package order
 
 import (
 	"github.com/spf13/cast"
@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-func TopicConfigsFromEnv() *event.TopicConfigs {
+func StatusUpdatedTopicConfigsFromEnv() *event.TopicConfigs {
 	kafkaAddressEnvVal := os.Getenv("KAFKA_ADDRESS")
 	kafkaAddress := strings.Split(kafkaAddressEnvVal, ",")
-	topic := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NAME")
+	topic := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_TOPIC_NAME")
 
 	numPartitions := 3
-	numPartitionsVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_NUMBER_OF_PARTITIONS")
+	numPartitionsVal := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_NUMBER_OF_PARTITIONS")
 	replicationFactor := 1
-	replicationFactorVal := os.Getenv("KAFKA_TOPICS__KITCHEN_REQUESTS_TOPIC_REPLICA_FACTOR")
+	replicationFactorVal := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_REPLICA_FACTOR")
 
 	if len(numPartitionsVal) > 0 {
 		numPartitions = cast.ToInt(numPartitionsVal)

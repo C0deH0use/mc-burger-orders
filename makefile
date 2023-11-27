@@ -2,7 +2,11 @@ build:
 	go build
 
 test:
-	go test -v ./...
+	go test -short -v ./...
+
+integration-test:
+	go test -v -run ".Integration" ./...
+
 lint:
 	golangci-lint run
 

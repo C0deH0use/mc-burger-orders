@@ -21,10 +21,15 @@ func NewTopicWriter(configuration *TopicConfigs) *DefaultWriter {
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
+	log.Warning.Printf("Creating a new TopicWriter for topic: %v", configuration.Topic)
 
 	conn := configuration.ConnectToBroker()
 	configuration.CreateTopic(conn)
 	return &DefaultWriter{conn: conn, configuration: configuration}
+}
+
+func (d *DefaultWriter) TopicName() string {
+	return d.configuration.Topic
 }
 
 func (d *DefaultWriter) initializeWriter() *kafka.Writer {
@@ -62,7 +67,7 @@ func (d *DefaultWriter) SendMessage(rootCtx context.Context, messages ...kafka.M
 			return err
 		}
 
-		log.Warning.Println("Message(s) send successfully on attempt", i)
+		log.Warning.Printf("Message(s) send successfully on attempt %d to topic: %v", i, d.configuration.Topic)
 		break
 	}
 

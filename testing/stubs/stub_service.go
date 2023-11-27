@@ -37,7 +37,8 @@ func RequestMatchingFnc(itemName string, quantity int, orderNumber int64) func(a
 		argQuantity := args["quantity"]
 		argNumber := args["orderNumber"]
 		log.Printf("StubService methodCalled. %+v", args)
-		return argName == itemName && argQuantity == quantity && argNumber == orderNumber
+		b := argName == itemName && argQuantity == quantity && argNumber == orderNumber
+		return b
 	}
 }
 
@@ -50,7 +51,17 @@ func MealPrepMatchingFnc(itemName string, quantity int) func(args map[string]any
 	}
 }
 
-func KafkaMessageMatchingFnc(orderNumber int64, messageVal map[string]any) func(args map[string]any) bool {
+func StatusUpdateMatchingFnc(status m.OrderStatus) func(args map[string]any) bool {
+	return func(args map[string]any) bool {
+		if statusUpdated, exists := args["StatusUpdatedEvent"]; exists {
+			log.Printf("StubService methodCalled. %+v", args)
+			return statusUpdated == status
+		}
+		return false
+	}
+}
+
+func KafkaMessageMatchingFnc(orderNumber int64, messageVal []map[string]any) func(args map[string]any) bool {
 	if b, err := json.Marshal(messageVal); err == nil {
 
 		expectedMessageValue := string(b)
@@ -117,6 +128,13 @@ func (s *StubService) Prepare(item string, quantity int) {
 	args := map[string]interface{}{
 		"itemName": item,
 		"quantity": quantity,
+	}
+	s.methodCalled = append(s.methodCalled, args)
+}
+
+func (s *StubService) EmitStatusUpdatedEvent(order *m.Order) {
+	args := map[string]interface{}{
+		"StatusUpdatedEvent": order.Status,
 	}
 	s.methodCalled = append(s.methodCalled, args)
 }

@@ -1,17 +1,9 @@
 package kitchen
 
-import "time"
-
-var preparationTimes = map[string]time.Duration{
-	"hamburger":       2500,
-	"cheeseburger":    4500,
-	"double-cheese":   3750,
-	"mc-chicken":      4200,
-	"mr-chicken-wrap": 6000,
-	"spicy-stripes":   4100,
-	"hot-wings":       3200,
-	"fries":           1500,
-}
+import (
+	item2 "mc-burger-orders/kitchen/item"
+	"time"
+)
 
 type MealPreparation interface {
 	Prepare(item string, quantity int)
@@ -21,8 +13,8 @@ type MealPreparationService struct {
 }
 
 func (m *MealPreparationService) Prepare(item string, quantity int) {
-	if duration, ok := preparationTimes[item]; ok {
-		time.Sleep(duration * time.Duration(quantity))
+	if itemConfig, ok := item2.MenuItems[item]; ok {
+		time.Sleep(itemConfig.PreparationTime * time.Duration(quantity))
 		return
 	}
 

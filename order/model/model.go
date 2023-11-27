@@ -1,8 +1,10 @@
 package model
 
 import (
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"mc-burger-orders/item"
+	"mc-burger-orders/kitchen/item"
+	"mc-burger-orders/log"
 	"time"
 )
 
@@ -22,22 +24,38 @@ func CreateNewOrder(number int64, order NewOrder) Order {
 	return Order{Id: &objectID, OrderNumber: number, CustomerId: order.CustomerId, Items: order.Items, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()}
 }
 
-func (o *Order) PackItem(name string, quantity int) {
-	o.PackedItems = append(o.PackedItems, item.Item{Name: name, Quantity: quantity})
+func (o *Order) PackItem(name string, quantity int) bool {
+	if quantity > 0 {
+		if o.PackedItems == nil {
+			o.PackedItems = make([]item.Item, 0)
+		}
+		o.PackedItems = append(o.PackedItems, item.Item{Name: name, Quantity: quantity})
+	}
 
-	packedItemsCount := o.getItemsCount(o.PackedItems)
+	packedItemsCount := o.GetItemsCount(o.PackedItems)
 	if packedItemsCount == 0 {
-		return
+		return false
 	}
 
-	if packedItemsCount < o.getItemsCount(o.Items) {
-		o.Status = InProgress
-	} else {
-		o.Status = Ready
+	var newStatus OrderStatus
+	switch {
+	case packedItemsCount < o.GetItemsCount(o.Items):
+		newStatus = InProgress
+	case packedItemsCount == o.GetItemsCount(o.Items):
+		newStatus = Ready
+	default:
+		newStatus = Requested
 	}
+	if newStatus != o.Status {
+		o.Status = newStatus
+		// Push Order Status Updated
+		log.Warning.Println("Order Status updated to:", o.Status)
+		return true
+	}
+	return false
 }
 
-func (o *Order) getItemsCount(items []item.Item) int {
+func (o *Order) GetItemsCount(items []item.Item) int {
 	var count = 0
 
 	for _, i := range items {
@@ -47,11 +65,46 @@ func (o *Order) getItemsCount(items []item.Item) int {
 	return count
 }
 
+func (o *Order) GetMissingItems() []item.Item {
+	i := make([]item.Item, 0)
+
+	for _, ii := range o.Items {
+		missingItemsCount, err := o.GetMissingItemsCount(ii.Name)
+		if err != nil {
+			log.Error.Printf("Order %d has incorrect items configuration, item: `%v` => %v", o.OrderNumber, ii.Name, err.Error())
+			continue
+		}
+		i = append(i, item.Item{Name: ii.Name, Quantity: missingItemsCount})
+	}
+	return i
+}
+
+func (o *Order) GetMissingItemsCount(itemName string) (int, error) {
+	var quantity = -1
+	for _, i := range o.Items {
+		if i.Name == itemName {
+			quantity = i.Quantity
+		}
+	}
+	if quantity == -1 {
+		err := fmt.Errorf("could not find item `%v` on the order list", itemName)
+		return -quantity, err
+	}
+
+	for _, i := range o.PackedItems {
+		if i.Name == itemName {
+			quantity -= i.Quantity
+		}
+	}
+
+	return quantity, nil
+}
+
 const (
 	Requested  = OrderStatus("REQUESTED")
 	InProgress = OrderStatus("IN_PROGRESS")
 	Ready      = OrderStatus("READY")
-	Done       = OrderStatus("DONE")
+	COLLECTED  = OrderStatus("COLLECTED")
 )
 
 type OrderStatus string

@@ -2,99 +2,77 @@ package utils
 
 import (
 	"context"
-	"fmt"
-	kafkago "github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/kafka"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"testing"
+	"time"
 )
 
-func TestWithMongo(ctx context.Context) *mongodb.MongoDBContainer {
-	mongodbContainer, err := mongodb.RunContainer(ctx,
-		testcontainers.WithImage("mongo:6"),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return mongodbContainer
+func TestWithMongo(t *testing.T, ctx context.Context) (*mongodb.MongoDBContainer, *mongo.Database) {
+	mongoDbContainer := startMongoContainer(t, ctx)
+	mongoDb := getDatabase(t, mongoDbContainer, ctx)
+	return mongoDbContainer, mongoDb
 }
 
-func TestWithKafka(ctx context.Context) (*kafka.KafkaContainer, []string) {
-	kafkaContainer, err := kafka.RunContainer(ctx, testcontainers.WithImage("confluentinc/confluent-local:7.5.0"))
-
-	if err != nil {
-		panic(err)
-	}
-
-	brokers, err := kafkaContainer.Brokers(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Print("✅✅✅ Kafka Container is Up.... Brokers: ", brokers, ": ✅✅✅")
-	return kafkaContainer, brokers
-}
-
-func GetMongoDbFrom(m *mongodb.MongoDBContainer) *mongo.Database {
-	ctx := context.Background()
-	endpoint, err := m.ConnectionString(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Print("✅✅✅ Mongo Container: ", endpoint, ": ✅✅✅")
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(endpoint))
-	if err != nil {
-		panic(err)
-	}
-
-	return mongoClient.Database("test-orders-db")
-}
-
-func TerminateMongo(mongodbContainer *mongodb.MongoDBContainer) {
-	ctx := context.Background()
-
-	log.Print("Terminating MongoDB....")
+func TerminateMongo(t *testing.T, ctx context.Context, mongodbContainer *mongodb.MongoDBContainer) {
+	t.Log("Terminating MongoDB....")
 
 	if err := mongodbContainer.Terminate(ctx); err != nil {
-		log.Println("Error while terminating Mongo Container", err)
+		assert.Failf(t, "Error while terminating Mongo Container", err.Error())
 	}
 }
 
-func TerminateKafka(kafkaContainer *kafka.KafkaContainer) {
-	ctx := context.Background()
-
-	log.Print("Terminating Kafka")
-	if err := kafkaContainer.Terminate(ctx); err != nil {
-		log.Println("Error while terminating Kafka Container", err)
-	}
-}
-
-func TerminateKafkaReader(testReader *kafkago.Reader) {
-	err := testReader.Close()
-	if err != nil {
-		panic("failure when closing test reader")
-	}
-}
-
-func DeleteMany(c *mongo.Collection, filter interface{}) {
+func DeleteMany(t *testing.T, c *mongo.Collection, filter interface{}) {
 	_, err := c.DeleteMany(context.TODO(), filter)
 
 	if err != nil {
-		deleteErr := fmt.Errorf("failed to remove records after the test: %s", err)
-		panic(deleteErr)
+		assert.Failf(t, "failed to remove records after the test: %s", err.Error())
 	}
 }
 
-func InsertMany(c *mongo.Collection, records []interface{}) {
+func InsertMany(t *testing.T, c *mongo.Collection, records []interface{}) {
 	_, err := c.InsertMany(context.TODO(), records)
 	if err != nil {
-		insertErr := fmt.Errorf("failed to insert test orders before the test: %s", err)
-		panic(insertErr)
+		assert.Failf(t, "failed to insert test orders before the test: %s", err.Error())
 	}
 
+}
+
+func startMongoContainer(t *testing.T, ctx context.Context) *mongodb.MongoDBContainer {
+	mongodbContainer, err := mongodb.RunContainer(ctx, testcontainers.WithImage("mongo:6"))
+	attempt := 1
+	for {
+		if err != nil && attempt < 4 {
+			t.Log("MONGO SETUP: RunContainer attempt", attempt)
+
+			time.Sleep(1 * time.Second)
+			attempt++
+			mongodbContainer, err = mongodb.RunContainer(ctx, testcontainers.WithImage("mongo:6"))
+		}
+		if err != nil && attempt == 4 {
+			assert.Failf(t, "MONGO SETUP: Unable to Start MongoDB. %v", err.Error())
+		} else {
+			t.Log("MONGO SETUP: No error on attempt", attempt)
+			break
+		}
+	}
+	return mongodbContainer
+}
+
+func getDatabase(t *testing.T, m *mongodb.MongoDBContainer, ctx context.Context) *mongo.Database {
+	endpoint, err := m.ConnectionString(ctx)
+	if err != nil {
+		assert.Failf(t, "MONGO SETUP: Unable to get MongoDB Connection String", err.Error())
+	}
+
+	t.Log("✅✅✅ Mongo Container: ", endpoint, ": ✅✅✅")
+	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(endpoint))
+	if err != nil {
+		assert.Failf(t, "MONGO SETUP: Unable to create Mongo client from Connection String: %v. %v", endpoint, err)
+	}
+
+	return mongoClient.Database("test-orders-db")
 }

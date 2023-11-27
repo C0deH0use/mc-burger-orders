@@ -1,7 +1,8 @@
-package command
+package order
 
 import (
 	"context"
+	"github.com/segmentio/kafka-go"
 	om "mc-burger-orders/order/model"
 )
 
@@ -10,7 +11,7 @@ type OrderCollectedCommand struct {
 	OrderNumber int64
 }
 
-func (o *OrderCollectedCommand) Execute(ctx context.Context) (bool, error) {
+func (o *OrderCollectedCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }

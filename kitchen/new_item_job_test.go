@@ -7,8 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
-	"mc-burger-orders/event"
-	stack2 "mc-burger-orders/stack"
+	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/data"
 	"mc-burger-orders/testing/stubs"
 	"testing"
@@ -17,7 +16,6 @@ import (
 
 var (
 	expectedOrderNumber = int64(1010)
-	testKafkaConfig     = testTopicConfigs()
 )
 
 func TestHandler_CreateNewItem(t *testing.T) {
@@ -28,15 +26,12 @@ func TestHandler_CreateNewItem(t *testing.T) {
 
 func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 	// given
-	stack := stack2.NewEmptyStack()
-	stub := stubs.NewStubService()
+	emptyStack := stack.NewEmptyStack()
 	prepMealStub := stubs.NewStubService()
 	handler := &Handler{
-		kitchenCooks:        workerpool.New(1),
-		mealPreparation:     prepMealStub,
-		stack:               stack,
-		stackMessageWriter:  stub,
-		kitchenTopicConfigs: testKafkaConfig,
+		kitchenCooks:    workerpool.New(1),
+		mealPreparation: prepMealStub,
+		stack:           emptyStack,
 	}
 
 	messageValue := make([]map[string]any, 0)
@@ -53,31 +48,18 @@ func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(expectedOrderNumber, map[string]any{
-		"itemName": "hamburger",
-		"quantity": 1,
-	})))
-	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(expectedOrderNumber, map[string]any{
-		"itemName": "cheeseburger",
-		"quantity": 2,
-	})))
-
-	// and
 	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
 	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
 }
 
 func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 	// given
-	stack := stack2.NewEmptyStack()
-	stub := stubs.NewStubService()
+	emptyStack := stack.NewEmptyStack()
 	prepMealStub := stubs.NewStubService()
 	handler := &Handler{
-		kitchenCooks:        workerpool.New(1),
-		mealPreparation:     prepMealStub,
-		stack:               stack,
-		stackMessageWriter:  stub,
-		kitchenTopicConfigs: testKafkaConfig,
+		kitchenCooks:    workerpool.New(1),
+		mealPreparation: prepMealStub,
+		stack:           emptyStack,
 	}
 
 	messageValue := make([]map[string]any, 0)
@@ -94,31 +76,19 @@ func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(-1, map[string]any{
-		"itemName": "hamburger",
-		"quantity": 1,
-	})))
-	assert.True(t, stub.HaveBeenCalledWith(stubs.KafkaMessageMatchingFnc(-1, map[string]any{
-		"itemName": "cheeseburger",
-		"quantity": 2,
-	})))
-
-	// and
 	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
 	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
 }
 
 func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
 	// given
-	stack := stack2.NewEmptyStack()
+	emptyStack := stack.NewEmptyStack()
 	stub := stubs.NewStubService()
 	prepMealStub := stubs.NewStubService()
 	handler := &Handler{
-		kitchenCooks:        workerpool.New(1),
-		mealPreparation:     prepMealStub,
-		stack:               stack,
-		stackMessageWriter:  stub,
-		kitchenTopicConfigs: testKafkaConfig,
+		kitchenCooks:    workerpool.New(1),
+		mealPreparation: prepMealStub,
+		stack:           emptyStack,
 	}
 
 	message := givenKafkaMessage(t, expectedOrderNumber, make([]map[string]any, 0))
@@ -133,12 +103,6 @@ func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
 	// and
 	assert.Equal(t, 0, stub.CalledCnt())
 	assert.Equal(t, 0, prepMealStub.CalledCnt())
-}
-
-func testTopicConfigs() *event.TopicConfigs {
-	return &event.TopicConfigs{
-		Topic: "some-kafka-topic",
-	}
 }
 
 func givenKafkaMessage(t *testing.T, orderNumber int64, messageValue []map[string]any) kafka.Message {

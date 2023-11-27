@@ -22,16 +22,11 @@ var (
 	topic      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
-func TestKitchenService_RequestForOrder(t *testing.T) {
+func TestIntegrationKitchenService_RequestForOrder(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx = context.Background()
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig := &event.TopicConfigs{
-		Topic:             topic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
+	kafkaConfig := event.TestTopicConfigs(topic, brokers...)
 	sut = NewKitchenServiceFrom(kafkaConfig)
 	testReader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   brokers,
@@ -48,7 +43,7 @@ func TestKitchenService_RequestForOrder(t *testing.T) {
 
 	// Clean up the container after
 	t.Cleanup(func() {
-		utils.TerminateKafka(kafkaContainer)
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 
@@ -67,7 +62,8 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	// and
 	expectedOrderHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
 	expectedEventHeader := kafka.Header{Key: "event", Value: []byte("request-item")}
-	expectedMessage := dto.NewKitchenRequestMessage(itemName, quantity)
+	expectedMessage := make([]*dto.KitchenRequestMessage, 0)
+	expectedMessage = append(expectedMessage, dto.NewKitchenRequestMessage(itemName, quantity))
 	message, err := testReader.ReadMessage(context.Background())
 
 	if err != nil {
@@ -80,8 +76,10 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	assert.Contains(t, message.Headers, expectedOrderHeader)
 	assert.Contains(t, message.Headers, expectedEventHeader)
 
-	actualMessage := &dto.KitchenRequestMessage{}
-	err = json.Unmarshal(message.Value, actualMessage)
+	actualMessage := make([]*dto.KitchenRequestMessage, 0)
+	actualMessage = append(actualMessage, dto.NewKitchenRequestMessage(itemName, quantity))
+
+	err = json.Unmarshal(message.Value, &actualMessage)
 	if err != nil {
 		assert.Fail(t, "failed to unmarshal message on test Topic", err)
 	}

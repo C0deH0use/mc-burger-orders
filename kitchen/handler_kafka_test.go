@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"math/rand"
 	"mc-burger-orders/event"
 	stack2 "mc-burger-orders/stack"
@@ -24,25 +23,19 @@ var (
 	topic       = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
-func TestCommandsHandler_WithKafkaMessages(t *testing.T) {
-
+func TestIntegrationHandler_WithKafkaMessages(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 	testStack = stack2.NewEmptyStack()
-	kafkaContainer, brokers := utils.TestWithKafka(ctx)
-	kafkaConfig = &event.TopicConfigs{
-		Topic:             topic,
-		Brokers:           brokers,
-		NumPartitions:     1,
-		ReplicationFactor: 1,
-		AutoCreateTopic:   true,
-	}
+	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
+	kafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	eventBus = event.NewInternalEventBus()
 
 	t.Run("should submit new request to worker when message arrives", shouldSubmitItemRequestToWorkerWhenMessageArrives)
 
 	t.Cleanup(func() {
-		log.Println("Running Clean UP code")
-		utils.TerminateKafka(kafkaContainer)
+		t.Log("Running Clean UP code")
+		utils.TerminateKafka(t, ctx, kafkaContainer)
 	})
 }
 
@@ -60,7 +53,7 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 		go sendMessages(t, msg2)
 	}
 
-	commandHandler := NewHandler(kafkaConfig, kafkaConfig, testStack)
+	commandHandler := NewHandler(testStack)
 	eventBus.AddHandler(commandHandler)
 
 	// when
@@ -71,10 +64,10 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	cnt := 0
 	for {
 		time.Sleep(1 * time.Second)
-		if assertExpectedItemsCreated() {
+		if assertExpectedItemsCreated(t) {
 			return
 		}
-		log.Println("not all items created yet!")
+		t.Log("not all items created yet!")
 		cnt++
 		if cnt > 25 {
 			assert.Fail(t, "not all items created")
@@ -83,10 +76,10 @@ func shouldSubmitItemRequestToWorkerWhenMessageArrives(t *testing.T) {
 	}
 }
 
-func assertExpectedItemsCreated() bool {
+func assertExpectedItemsCreated(t *testing.T) bool {
 	hamburgers := testStack.GetCurrent("hamburger")
 	spicyStripes := testStack.GetCurrent("spicy-stripes")
-	log.Printf("Hamburgers: %d || Spicy-stripes: %d", hamburgers, spicyStripes)
+	t.Logf("Hamburgers: %d || Spicy-stripes: %d", hamburgers, spicyStripes)
 	return 10 <= hamburgers && 20 <= spicyStripes
 }
 

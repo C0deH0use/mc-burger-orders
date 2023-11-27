@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cast"
 	"mc-burger-orders/command"
 	"mc-burger-orders/log"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/utils"
 	"os"
 	"strconv"
@@ -16,10 +16,10 @@ type Handler struct {
 	defaultHandler  command.DefaultCommandHandler
 	mealPreparation MealPreparation
 	kitchenCooks    *workerpool.WorkerPool
-	stack           *stack.Stack
+	shelf           *shelf.Shelf
 }
 
-func NewHandler(s *stack.Stack) *Handler {
+func NewHandler(s *shelf.Shelf) *Handler {
 	maxWorkers := 5
 	maxWorkersVal := os.Getenv("KITCHEN_WORKERS_MAX")
 
@@ -31,7 +31,7 @@ func NewHandler(s *stack.Stack) *Handler {
 	return &Handler{
 		kitchenCooks:    workerpool.New(maxWorkers),
 		mealPreparation: &MealPreparationService{},
-		stack:           s,
+		shelf:           s,
 		defaultHandler:  command.DefaultCommandHandler{},
 	}
 }
@@ -44,7 +44,7 @@ func (h *Handler) AddCommands(event string, commands ...command.Command) {
 	h.defaultHandler.AddCommands(event, commands...)
 }
 
-func (h *Handler) GetCommands(message kafka.Message) ([]command.Command, error) {
+func (h *Handler) GetCommands(_ kafka.Message) ([]command.Command, error) {
 	log.Warning.Printf("No Commands defined in Kitchen Handler")
 	return make([]command.Command, 0), nil
 }

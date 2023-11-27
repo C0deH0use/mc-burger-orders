@@ -29,7 +29,7 @@ func (h *Handler) CreateNewItem(message kafka.Message) (bool, error) {
 
 		log.Info.Printf("CookRequest: %v | Order: %d | item(s) %v in prepared", messageKey, orderNumber, request.ItemName)
 
-		h.stack.AddMany(request.ItemName, request.Quantity)
+		h.shelf.AddMany(request.ItemName, request.Quantity)
 	}
 
 	return true, nil

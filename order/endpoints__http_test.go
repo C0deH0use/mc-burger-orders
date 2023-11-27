@@ -16,7 +16,7 @@ import (
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
 	s "mc-burger-orders/order/dto"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
@@ -64,7 +64,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, stack.NewEmptyStack())
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -142,7 +142,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 
 	repository := NewRepository(database)
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, stack.NewEmptyStack())
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	kitchenRequestsReader = kafka.NewReader(kafka.ReaderConfig{

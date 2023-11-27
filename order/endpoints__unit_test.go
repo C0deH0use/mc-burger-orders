@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	command2 "mc-burger-orders/command"
 	"mc-burger-orders/middleware"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +16,7 @@ import (
 )
 
 type FakeOrderEndpoints struct {
-	s              *stack.Stack
+	s              *shelf.Shelf
 	repository     OrderRepository
 	queryService   OrderQueryService
 	kitchenService KitchenRequestService
@@ -76,7 +76,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewEmptyStack(),
+		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
 		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},
@@ -123,7 +123,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewEmptyStack(),
+		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
 		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},
@@ -168,7 +168,7 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
-		s:              stack.NewEmptyStack(),
+		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
 		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},

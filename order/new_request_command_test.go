@@ -5,13 +5,13 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"testing"
 )
 
 func Test_CreateNewOrder(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany("hamburger", 3)
 
 	expectedOrderNumber := int64(1010)
@@ -95,7 +95,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.Add("hamburger")
 
 	expectedOrderNumber := int64(1010)
@@ -179,7 +179,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	expectedOrderNumber := int64(1010)
 	newOrder := NewOrder{
 		CustomerId: 10,

@@ -6,12 +6,12 @@ import (
 	"github.com/segmentio/kafka-go"
 	item2 "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 )
 
 type NewRequestCommand struct {
 	Repository     OrderRepository
-	Stack          *stack.Stack
+	Stack          *shelf.Shelf
 	KitchenService KitchenRequestService
 	StatusEmitter  StatusEmitter
 	OrderNumber    int64
@@ -30,7 +30,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 		}
 
 		if isReady {
-			log.Info.Printf("Item %v is of type automatically ready. No need to check stack if one in available. Packing automatically.", item.Name)
+			log.Info.Printf("Item %v is of type automatically ready. No need to check shelf if one in available. Packing automatically.", item.Name)
 			if sUpdated := orderRecord.PackItem(item.Name, item.Quantity); sUpdated {
 				statusUpdated = sUpdated
 			}
@@ -59,7 +59,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 }
 
 func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item item2.Item, orderRecord *Order) (statusUpdated bool, err error) {
-	log.Info.Println("Item", item, "needs to be prepared first. Checking stack if one in available.")
+	log.Info.Println("Item", item, "needs to be prepared first. Checking shelf if one in available.")
 	amountInStock := c.Stack.GetCurrent(item.Name)
 	if amountInStock == 0 {
 		log.Info.Printf("Sending Request to kitchen for %d new %v", item.Quantity, item.Name)
@@ -71,7 +71,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item ite
 		var itemTaken int
 
 		if amountInStock > item.Quantity {
-			log.Info.Println("Stack has required quantity of item", item.Name)
+			log.Info.Println("Shelf has required quantity of item", item.Name)
 			itemTaken = item.Quantity
 		} else {
 			itemTaken = item.Quantity - amountInStock
@@ -86,7 +86,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item ite
 		err = c.Stack.Take(item.Name, itemTaken)
 
 		if err != nil {
-			err = fmt.Errorf("error when collecting '%d' item(s) '%s' from stack", item.Quantity, item.Name)
+			err = fmt.Errorf("error when collecting '%d' item(s) '%s' from shelf", item.Quantity, item.Name)
 			return statusUpdated, err
 		}
 

@@ -7,7 +7,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen"
-	"mc-burger-orders/log"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/utils"
 	"strconv"
@@ -40,7 +39,6 @@ func (s *KitchenService) RequestForOrder(ctx context.Context, itemName string, q
 	}
 
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
-	log.Info.Println("Sending message with value", string(msgValue))
 	msg := kafka.Message{
 		Headers: headers,
 		Key:     msgKey,

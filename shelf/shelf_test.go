@@ -1,4 +1,4 @@
-package stack
+package shelf
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func TestStack_Add(t *testing.T) {
 	ctx := context.Background()
 	kafkaContainer, brokers = utils.TestWithKafka(t, ctx)
 
-	log.Printf("Starting Stack Test tests....")
+	log.Printf("Starting Shelf Test tests....")
 
 	t.Run("should emit event when add one item", shouldEmitAddItemEvenWhenOneItemAdded)
 	t.Run("should emit event when adding multiple items", shouldEmitAddItemEvenWhenMultipleItemsAdded)
@@ -58,13 +58,13 @@ func shouldEmitAddItemEvenWhenOneItemAdded(t *testing.T) {
 
 	eventBus := event.NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
-	commandHandler.AddCommands(ItemAddedToStackEvent, &stubCommand)
+	commandHandler.AddCommands(ItemAddedOnShelfEvent, &stubCommand)
 	eventBus.AddHandler(commandHandler)
 
 	topicName := fmt.Sprintf("test-stack-events-%d", rand.Intn(100))
 	stackKafkaConfig = event.TestTopicConfigs(topicName, brokers...)
 
-	sut := NewEmptyStack()
+	sut := NewEmptyShelf()
 	sut.ConfigureWriter(event.NewTopicWriter(stackKafkaConfig))
 
 	reader := event.NewTopicReader(stackKafkaConfig, eventBus)
@@ -88,7 +88,7 @@ func shouldEmitAddItemEvenWhenOneItemAdded(t *testing.T) {
 		return
 	}
 
-	assert.Equal(t, ItemAddedToStackEvent, eventType)
+	assert.Equal(t, ItemAddedOnShelfEvent, eventType)
 	assert.Equal(t, "[{\"itemName\":\"hamburger\",\"quantity\":1}]", string(newEvent.Value))
 }
 
@@ -101,13 +101,13 @@ func shouldEmitAddItemEvenWhenMultipleItemsAdded(t *testing.T) {
 
 	eventBus := event.NewInternalEventBus()
 	commandHandler := command.NewCommandHandler()
-	commandHandler.AddCommands(ItemAddedToStackEvent, &stubCommand)
+	commandHandler.AddCommands(ItemAddedOnShelfEvent, &stubCommand)
 	eventBus.AddHandler(commandHandler)
 
 	topicName := fmt.Sprintf("test-stack-events-%d", rand.Intn(100))
 	stackKafkaConfig = event.TestTopicConfigs(topicName, brokers...)
 
-	sut := NewEmptyStack()
+	sut := NewEmptyShelf()
 	sut.ConfigureWriter(event.NewTopicWriter(stackKafkaConfig))
 
 	reader := event.NewTopicReader(stackKafkaConfig, eventBus)
@@ -133,7 +133,7 @@ func shouldEmitAddItemEvenWhenMultipleItemsAdded(t *testing.T) {
 		return
 	}
 
-	assert.Equal(t, ItemAddedToStackEvent, eventType)
+	assert.Equal(t, ItemAddedOnShelfEvent, eventType)
 
 	assert.Equal(t, "[{\"itemName\":\"cheeseburger\",\"quantity\":10}]", string(newEvent.Value))
 }

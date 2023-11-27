@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/data"
 	"testing"
 	"time"
@@ -25,12 +25,12 @@ func TestHandler_CreateNewItem(t *testing.T) {
 
 func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 	// given
-	emptyStack := stack.NewEmptyStack()
+	emptyStack := shelf.NewEmptyShelf()
 	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
-		stack:           emptyStack,
+		shelf:           emptyStack,
 	}
 
 	messageValue := make([]map[string]any, 0)
@@ -53,12 +53,12 @@ func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 
 func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 	// given
-	emptyStack := stack.NewEmptyStack()
+	emptyStack := shelf.NewEmptyShelf()
 	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
-		stack:           emptyStack,
+		shelf:           emptyStack,
 	}
 
 	messageValue := make([]map[string]any, 0)
@@ -81,12 +81,12 @@ func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 
 func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
 	// given
-	emptyStack := stack.NewEmptyStack()
+	emptyStack := shelf.NewEmptyShelf()
 	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
-		stack:           emptyStack,
+		shelf:           emptyStack,
 	}
 
 	message := givenKafkaMessage(t, expectedOrderNumber, make([]map[string]any, 0))

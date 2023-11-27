@@ -7,14 +7,14 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
 	"mc-burger-orders/order/dto"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 )
 
 type PackItemCommand struct {
 	Repository     PackingOrderItemsRepository
 	KitchenService KitchenRequestService
 	StatusEmitter  StatusEmitter
-	Stack          *stack.Stack
+	Shelf          *shelf.Shelf
 }
 
 func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
@@ -31,7 +31,7 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (b
 	}
 
 	for _, itemUpdate := range stackMessage {
-		log.Info.Printf("New item(s) %v added to stack", itemUpdate.ItemName)
+		log.Info.Printf("New item(s) %v added to shelf", itemUpdate.ItemName)
 
 		orders, err := p.Repository.FetchByMissingItem(ctx, itemUpdate.ItemName)
 		if err != nil {
@@ -46,7 +46,7 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (b
 				continue
 			}
 
-			current := p.Stack.GetCurrent(itemUpdate.ItemName)
+			current := p.Shelf.GetCurrent(itemUpdate.ItemName)
 			if current < orderQuantity {
 				quantityToRequest := orderQuantity - current
 				err = p.KitchenService.RequestForOrder(ctx, itemUpdate.ItemName, quantityToRequest, order.OrderNumber)
@@ -59,9 +59,9 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (b
 				orderQuantity = current
 			}
 
-			err = p.Stack.Take(itemUpdate.ItemName, orderQuantity)
+			err = p.Shelf.Take(itemUpdate.ItemName, orderQuantity)
 			if err != nil {
-				log.Error.Printf("could not take item `%v` in quantity `%d` from Stack. Reason: %v", itemUpdate.ItemName, itemUpdate.Quantity, err)
+				log.Error.Printf("could not take item `%v` in quantity `%d` from Shelf. Reason: %v", itemUpdate.ItemName, itemUpdate.Quantity, err)
 				continue
 			}
 

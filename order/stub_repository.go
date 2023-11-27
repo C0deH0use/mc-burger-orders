@@ -1,15 +1,14 @@
-package stubs
+package order
 
 import (
 	"context"
 	"encoding/json"
-	m "mc-burger-orders/order"
 )
 
 type StubRepository struct {
-	o              []*m.Order
-	insertOrUpdate *m.Order
-	fetchById      *m.Order
+	o              []*Order
+	insertOrUpdate *Order
+	fetchById      *Order
 	nextNumber     int64
 	err            error
 	methodCalled   []map[string]interface{}
@@ -19,15 +18,15 @@ func GivenRepository() *StubRepository {
 	return &StubRepository{}
 }
 
-func (s *StubRepository) ReturnFetchById(order *m.Order) {
+func (s *StubRepository) ReturnFetchById(order *Order) {
 	s.fetchById = order
 }
 
-func (s *StubRepository) ReturnOrders(orders ...*m.Order) {
+func (s *StubRepository) ReturnOrders(orders ...*Order) {
 	s.o = orders
 }
 
-func (s *StubRepository) ReturnWhenInsertOrUpdate(order *m.Order) {
+func (s *StubRepository) ReturnWhenInsertOrUpdate(order *Order) {
 	s.insertOrUpdate = order
 }
 
@@ -39,7 +38,7 @@ func (s *StubRepository) ReturnError(error error) {
 	s.err = error
 }
 
-func (s *StubRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.Order, error) {
+func (s *StubRepository) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": order})
 
 	if s.insertOrUpdate != nil {
@@ -48,7 +47,7 @@ func (s *StubRepository) InsertOrUpdate(ctx context.Context, order m.Order) (*m.
 	return &order, s.err
 }
 
-func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*m.Order, error) {
+func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchById": id})
 
 	if s.fetchById != nil {
@@ -57,17 +56,17 @@ func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*m.Orde
 	return s.o[0], s.err
 }
 
-func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*m.Order, error) {
+func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByOrderNumber": orderNumber})
 	return s.o[0], s.err
 }
 
-func (s *StubRepository) FetchMany(ctx context.Context) ([]*m.Order, error) {
+func (s *StubRepository) FetchMany(ctx context.Context) ([]*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchMany": nil})
 	return s.o, s.err
 }
 
-func (s *StubRepository) FetchByMissingItem(ctx context.Context, itemName string) ([]*m.Order, error) {
+func (s *StubRepository) FetchByMissingItem(ctx context.Context, itemName string) ([]*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByMissingItem": itemName})
 	return s.o, s.err
 }
@@ -76,12 +75,12 @@ func (s *StubRepository) GetNext(ctx context.Context) (int64, error) {
 	return s.nextNumber, s.err
 }
 
-func (s *StubRepository) GetUpsertArgs() []m.Order {
-	var u []m.Order
+func (s *StubRepository) GetUpsertArgs() []Order {
+	var u []Order
 
 	for _, methodInvocation := range s.methodCalled {
 		if v, exists := methodInvocation["InsertOrUpdate"]; exists {
-			var o = m.Order{}
+			var o = Order{}
 			dbByte, _ := json.Marshal(v)
 			err := json.Unmarshal(dbByte, &o)
 			if err != nil {

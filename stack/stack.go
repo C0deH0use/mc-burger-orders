@@ -21,10 +21,6 @@ type Stack struct {
 	kitchenStack *sync.Map
 }
 
-func NewStack(ks *sync.Map) *Stack {
-	return &Stack{kitchenStack: ks}
-}
-
 func NewEmptyStack() *Stack {
 	return &Stack{kitchenStack: CleanStack()}
 }

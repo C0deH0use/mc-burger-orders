@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"mc-burger-orders/event"
-	stack2 "mc-burger-orders/stack"
+	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/data"
 	"mc-burger-orders/testing/utils"
 	"strconv"
@@ -18,7 +18,7 @@ import (
 
 var (
 	kafkaConfig *event.TopicConfigs
-	testStack   *stack2.Stack
+	testStack   *stack.Stack
 	eventBus    event.EventBus
 	topic       = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
@@ -26,7 +26,7 @@ var (
 func TestIntegrationHandler_WithKafkaMessages(t *testing.T) {
 	utils.IntegrationTest(t)
 	ctx := context.Background()
-	testStack = stack2.NewEmptyStack()
+	testStack = stack.NewEmptyStack()
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig = event.TestTopicConfigs(topic, brokers...)
 	eventBus = event.NewInternalEventBus()

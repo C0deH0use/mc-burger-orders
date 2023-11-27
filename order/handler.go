@@ -75,7 +75,7 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 		}
 	case StatusUpdatedEvent:
 		{
-			orderNumber, err := GetOrderNumber(message)
+			orderNumber, err := utils2.GetOrderNumber(message)
 			if err != nil {
 				log.Error.Println(err.Error())
 				return nil, err
@@ -87,7 +87,7 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 		}
 	case CollectedEvent:
 		{
-			orderNumber, err := GetOrderNumber(message)
+			orderNumber, err := utils2.GetOrderNumber(message)
 			if err != nil {
 				log.Error.Println(err.Error())
 				return nil, err

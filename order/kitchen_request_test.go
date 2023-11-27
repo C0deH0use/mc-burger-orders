@@ -3,10 +3,8 @@ package order
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"mc-burger-orders/event"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/testing/utils"
@@ -19,7 +17,6 @@ var (
 	sut        *KitchenService
 	ctx        context.Context
 	testReader *kafka.Reader
-	topic      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
 func TestIntegrationKitchenService_RequestForOrder(t *testing.T) {

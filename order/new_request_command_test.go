@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/stack"
-	stubs2 "mc-burger-orders/testing/stubs"
 	"testing"
 )
 
@@ -41,9 +40,9 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := stubs2.NewStubService()
-	stubStatusEmitter := stubs2.NewStubService()
-	stubRepository := stubs2.GivenRepository()
+	stubKitchenService := NewOrderService()
+	stubStatusEmitter := NewOrderService()
+	stubRepository := GivenRepository()
 	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
@@ -90,7 +89,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
-	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(Ready)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 
 }
 
@@ -125,8 +124,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := stubs2.NewStubService()
-	stubStatusEmitter := stubs2.NewStubService()
+	stubKitchenService := NewOrderService()
+	stubStatusEmitter := NewOrderService()
 	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
@@ -134,7 +133,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		Items:       newOrder.Items,
 		PackedItems: []i.Item{},
 	}
-	stubRepository := stubs2.GivenRepository()
+	stubRepository := GivenRepository()
 	stubRepository.ReturnOrders(expectedOrder)
 
 	command := &NewRequestCommand{
@@ -171,11 +170,11 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("hamburger", 1, expectedOrderNumber)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1, expectedOrderNumber)))
 
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
-	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(stubs2.StatusUpdateMatchingFnc(InProgress)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 }
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
@@ -195,9 +194,9 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := stubs2.NewStubService()
-	stubStatusEmitter := stubs2.NewStubService()
-	stubRepository := stubs2.GivenRepository()
+	stubKitchenService := NewOrderService()
+	stubStatusEmitter := NewOrderService()
+	stubRepository := GivenRepository()
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
@@ -232,8 +231,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("hamburger", 2, expectedOrderNumber)))
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(stubs2.RequestMatchingFnc("fries", 1, expectedOrderNumber)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 2, expectedOrderNumber)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1, expectedOrderNumber)))
 
 	// and
 	assert.Equal(t, 0, stubStatusEmitter.CalledCnt())

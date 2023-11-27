@@ -9,7 +9,6 @@ import (
 	command2 "mc-burger-orders/command"
 	"mc-burger-orders/middleware"
 	"mc-burger-orders/stack"
-	"mc-burger-orders/testing/stubs"
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
@@ -72,8 +71,8 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.GivenRepository()
-	orderNumberRepository := stubs.GivenRepository()
+	repository := GivenRepository()
+	orderNumberRepository := GivenRepository()
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
@@ -119,8 +118,8 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.GivenRepository()
-	orderNumberRepository := stubs.GivenRepository()
+	repository := GivenRepository()
+	orderNumberRepository := GivenRepository()
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{
@@ -164,8 +163,8 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := stubs.GivenRepository()
-	orderNumberRepository := stubs.GivenRepository()
+	repository := GivenRepository()
+	orderNumberRepository := GivenRepository()
 	orderNumberRepository.ReturnNextNumber(expectedOrderNumber)
 
 	fakeEndpoints := FakeOrderEndpoints{

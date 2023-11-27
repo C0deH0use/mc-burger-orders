@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/utils"
 	"strconv"
 	"testing"
@@ -20,7 +20,7 @@ import (
 var (
 	stackKafkaConfig       *event.TopicConfigs
 	orderStatusKafkaConfig *event.TopicConfigs
-	stackTopic             = fmt.Sprintf("test-stack-events-%d", rand.Intn(100))
+	stackTopic             = fmt.Sprintf("test-shelf-events-%d", rand.Intn(100))
 	orderStatusTopic       = fmt.Sprintf("test-order-status-events-%d", rand.Intn(100))
 )
 
@@ -37,7 +37,7 @@ func TestOrdersHandler_Handle(t *testing.T) {
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
 
-	t.Run("should pack item when stack event occurred", shouldPackPreparedItemWhenEvenFromStackOccurred)
+	t.Run("should pack item when shelf event occurred", shouldPackPreparedItemWhenEvenFromStackOccurred)
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
@@ -48,7 +48,7 @@ func TestOrdersHandler_Handle(t *testing.T) {
 
 func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	// given
-	kitchenStack := stack.NewEmptyStack()
+	kitchenStack := shelf.NewEmptyShelf()
 	expectedOrders := []interface{}{
 		Order{OrderNumber: 999, CustomerId: 10, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
@@ -108,7 +108,7 @@ func sendItemAddedToStackMessages(t *testing.T, requestPayload []map[string]any)
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	headers := make([]kafka.Header, 0)
-	headers = append(headers, kafka.Header{Key: "event", Value: []byte(stack.ItemAddedToStackEvent)})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte(shelf.ItemAddedOnShelfEvent)})
 
 	b, _ := json.Marshal(requestPayload)
 

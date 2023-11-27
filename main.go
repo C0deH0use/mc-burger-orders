@@ -7,7 +7,7 @@ import (
 	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
@@ -15,21 +15,21 @@ import "mc-burger-orders/order"
 func main() {
 	loadEnv()
 	mongoDb := middleware.GetMongoClient()
-	kitchenStack := stack.NewEmptyStack()
+	ordersShelf := shelf.NewEmptyShelf()
 	eventBus := event.NewInternalEventBus()
 
-	stackTopicConfigs := stack.TopicConfigsFromEnv()
+	stackTopicConfigs := shelf.TopicConfigsFromEnv()
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
-	kitchenStack.ConfigureWriter(event.NewTopicWriter(stackTopicConfigs))
+	ordersShelf.ConfigureWriter(event.NewTopicWriter(stackTopicConfigs))
 	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
 	orderStatusReader := event.NewTopicReader(orderStatusTopicConfigs, eventBus)
 
-	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, kitchenStack)
+	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
 
 	kitchenTopicReader := event.NewTopicReader(kitchenTopicConfigs, eventBus)
-	kitchenEventsHandler := kitchen.NewHandler(kitchenStack)
+	kitchenEventsHandler := kitchen.NewHandler(ordersShelf)
 
 	r := gin.Default()
 	r.ForwardedByClientIP = true
@@ -42,7 +42,7 @@ func main() {
 	eventBus.AddHandler(orderCommandsHandler)
 	eventBus.AddHandler(kitchenEventsHandler)
 
-	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, kitchenStack)
+	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
 
 	orderEndpoints.Setup(r)
 

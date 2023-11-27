@@ -11,13 +11,13 @@ import (
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/utils"
 	"net/http"
 )
 
 type Endpoints struct {
-	stack           *stack.Stack
+	stack           *shelf.Shelf
 	queryService    OrderQueryService
 	orderRepository OrderRepository
 	kitchenService  KitchenRequestService
@@ -25,7 +25,7 @@ type Endpoints struct {
 	dispatcher      command.Dispatcher
 }
 
-func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
+func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *shelf.Shelf) middleware.EndpointsSetup {
 	repository := NewRepository(database)
 	orderNumberRepository := NewOrderNumberRepository(database)
 	queryService := OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}

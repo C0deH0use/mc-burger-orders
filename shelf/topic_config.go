@@ -1,4 +1,4 @@
-package stack
+package shelf
 
 import (
 	"github.com/spf13/cast"

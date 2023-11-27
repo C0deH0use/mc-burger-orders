@@ -7,20 +7,20 @@ import (
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	utils2 "mc-burger-orders/utils"
 )
 
 type OrdersHandler struct {
 	defaultHandler command.DefaultCommandHandler
-	stack          *stack.Stack
+	shelf          *shelf.Shelf
 	queryService   OrderQueryService
 	repository     OrderRepository
 	statusEmitter  StatusEmitter
 	kitchenService KitchenRequestService
 }
 
-func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) *OrdersHandler {
+func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *shelf.Shelf) *OrdersHandler {
 	repository := NewRepository(database)
 	orderNumberRepository := NewOrderNumberRepository(database)
 	queryService := OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
@@ -28,7 +28,7 @@ func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfig
 	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
 	return &OrdersHandler{
-		stack:          s,
+		shelf:          s,
 		queryService:   queryService,
 		repository:     repository,
 		kitchenService: kitchenService,
@@ -48,7 +48,7 @@ func (o *OrdersHandler) Handle(message kafka.Message) (bool, error) {
 }
 
 func (o *OrdersHandler) GetHandledEvents() []string {
-	return []string{stack.ItemAddedToStackEvent, StatusUpdatedEvent, CollectedEvent}
+	return []string{shelf.ItemAddedOnShelfEvent, StatusUpdatedEvent, CollectedEvent}
 }
 
 func (o *OrdersHandler) AddCommands(event string, commands ...command.Command) {
@@ -64,10 +64,10 @@ func (o *OrdersHandler) GetCommands(message kafka.Message) ([]command.Command, e
 
 	commands := make([]command.Command, 0)
 	switch eventType {
-	case stack.ItemAddedToStackEvent:
+	case shelf.ItemAddedOnShelfEvent:
 		{
 			commands = append(commands, &PackItemCommand{
-				Stack:          o.stack,
+				Shelf:          o.shelf,
 				Repository:     o.repository,
 				KitchenService: o.kitchenService,
 				StatusEmitter:  o.statusEmitter,

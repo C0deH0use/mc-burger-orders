@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	i "mc-burger-orders/kitchen/item"
-	"mc-burger-orders/stack"
+	"mc-burger-orders/shelf"
 	"testing"
 	"time"
 )
@@ -28,17 +28,17 @@ var (
 )
 
 func TestPackItemCommand_Execute(t *testing.T) {
-	t.Run("should add new items added to stack when command executed", shouldPackItemPointedInMessage)
+	t.Run("should add new items added to shelf when command executed", shouldPackItemPointedInMessage)
 	t.Run("should set to READY when all items are packed", shouldFinishPackingOrderWhenLastItemsCameFromKitchen)
-	t.Run("should try and pack items to multiple orders when new items are added to stack", shouldPackMultipleOrdersWhenMultipleItemsAdded)
-	t.Run("should pack items of other orders when first order already is packed with the item that was added to stack", shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem)
+	t.Run("should try and pack items to multiple orders when new items are added to shelf", shouldPackMultipleOrdersWhenMultipleItemsAdded)
+	t.Run("should pack items of other orders when first order already is packed with the item that was added to shelf", shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem)
 	t.Run("should pack available items and request new when not all items are available", shouldRequestAdditionalItemWhenMoreAreNeeded)
 	t.Run("should fail when message value is empty", shouldFailWhenMessageValueIsEmpty)
 }
 
 func shouldPackItemPointedInMessage(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany(hamburger, 3)
 	s.AddMany(cheeseburger, 2)
 	s.AddMany(mcSpicy, 4)
@@ -62,7 +62,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
@@ -111,7 +111,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany(hamburger, 3)
 	s.AddMany(cheeseburger, 2)
 	s.AddMany(mcSpicy, 4)
@@ -143,7 +143,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
@@ -200,7 +200,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany(spicyStripes, 18)
 	s.AddMany(cheeseburger, 8)
 	s.AddMany(hamburger, 8)
@@ -254,7 +254,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	repositoryStub.ReturnOrders(existingOrders...)
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
@@ -306,7 +306,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 
 func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany(spicyStripes, 10)
 
 	messageValue := make([]map[string]any, 0)
@@ -359,7 +359,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	repositoryStub.ReturnOrders(existingOrders...)
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
@@ -402,7 +402,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 
 func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	s.AddMany(spicyStripes, 3)
 	s.AddMany(cheeseburger, 2)
 
@@ -420,7 +420,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
@@ -464,7 +464,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	// given
-	s := stack.NewEmptyStack()
+	s := shelf.NewEmptyShelf()
 	message := givenKafkaMessage(t, make([]map[string]any, 0))
 
 	kitchenService := NewOrderService()
@@ -473,7 +473,7 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
-		Stack:          s,
+		Shelf:          s,
 		Repository:     repositoryStub,
 		StatusEmitter:  statusEmitter,
 		KitchenService: kitchenService,
@@ -517,7 +517,7 @@ func givenKafkaMessage(t *testing.T, messageValue []map[string]any) kafka.Messag
 	}
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, kafka.Header{Key: "order", Value: []byte(cast.ToString(expectedOrderNumber))})
-	headers = append(headers, kafka.Header{Key: "event", Value: []byte("item-added-to-stack")})
+	headers = append(headers, kafka.Header{Key: "event", Value: []byte("item-added-to-shelf")})
 
 	message := kafka.Message{
 		Headers: headers,

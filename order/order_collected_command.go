@@ -3,11 +3,10 @@ package order
 import (
 	"context"
 	"github.com/segmentio/kafka-go"
-	om "mc-burger-orders/order/model"
 )
 
 type OrderCollectedCommand struct {
-	Repository  om.OrderRepository
+	Repository  OrderRepository
 	OrderNumber int64
 }
 

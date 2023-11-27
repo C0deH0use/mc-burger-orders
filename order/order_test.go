@@ -1,4 +1,4 @@
-package model
+package order
 
 import (
 	"github.com/stretchr/testify/assert"

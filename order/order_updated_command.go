@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
-	om "mc-burger-orders/order/model"
 )
 
 type OrderUpdatedCommand struct {
-	Repository  om.OrderRepository
+	Repository  OrderRepository
 	OrderNumber int64
 }
 
 func (o *OrderUpdatedCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
-	payloadBody := map[string]om.OrderStatus{}
+	payloadBody := map[string]OrderStatus{}
 	if err := json.Unmarshal(message.Value, &payloadBody); err != nil {
 		log.Error.Printf("failed to unmarshal payload from message to map of strings. Reason: %v", err.Error())
 		return false, err

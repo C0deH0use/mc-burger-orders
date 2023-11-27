@@ -1,6 +1,8 @@
 package event
 
-import "time"
+import (
+	"time"
+)
 
 func TestTopicConfigs(topicName string, brokers ...string) *TopicConfigs {
 	return &TopicConfigs{

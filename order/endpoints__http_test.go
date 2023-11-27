@@ -16,7 +16,6 @@ import (
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
 	s "mc-burger-orders/order/dto"
-	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/utils"
 	"net/http"
@@ -58,9 +57,9 @@ func TestIntegrationOrder_HttpEndpoints(t *testing.T) {
 func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	// given
 	expectedOrders := []interface{}{
-		m.Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: m.Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
-		m.Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: m.InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
-		m.Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: m.Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
@@ -141,7 +140,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := m.NewRepository(database)
+	repository := NewRepository(database)
 
 	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, stack.NewEmptyStack())
 	engine := utils.SetUpRouter(endpoints.Setup)
@@ -183,7 +182,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 
 		assert.Equal(t, expectedOrderNumber, actualOrder.OrderNumber)
 		assert.Equal(t, 10, actualOrder.CustomerId)
-		assert.Equal(t, m.InProgress, actualOrder.Status)
+		assert.Equal(t, InProgress, actualOrder.Status)
 		assert.Equal(t, expectedItems, actualOrder.Items)
 
 		assert.Len(t, actualOrder.PackedItems, 1)

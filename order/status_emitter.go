@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
-	om "mc-burger-orders/order/model"
 	"mc-burger-orders/utils"
 	"strconv"
 	"time"
 )
 
 type StatusEmitter interface {
-	EmitStatusUpdatedEvent(order *om.Order)
+	EmitStatusUpdatedEvent(order *Order)
 }
 
 type StatusEmitterService struct {
@@ -23,13 +22,13 @@ func NewStatusEmitterFrom(topicConfig *event.TopicConfigs) *StatusEmitterService
 	return &StatusEmitterService{OrderTopicConfig: topicConfig}
 }
 
-func (r *StatusEmitterService) EmitStatusUpdatedEvent(order *om.Order) {
+func (r *StatusEmitterService) EmitStatusUpdatedEvent(order *Order) {
 	writer := event.NewTopicWriter(r.OrderTopicConfig)
 
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, utils.OrderHeader(order.OrderNumber))
 	headers = append(headers, utils.EventTypeHeader(StatusUpdatedEvent))
-	payloadBody := map[string]om.OrderStatus{
+	payloadBody := map[string]OrderStatus{
 		"status": order.Status,
 	}
 

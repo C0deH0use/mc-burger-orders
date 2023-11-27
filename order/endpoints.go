@@ -11,8 +11,6 @@ import (
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
-	m "mc-burger-orders/order/model"
-	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/utils"
 	"net/http"
@@ -20,18 +18,18 @@ import (
 
 type Endpoints struct {
 	stack           *stack.Stack
-	queryService    m.OrderQueryService
-	orderRepository m.OrderRepository
-	kitchenService  service.KitchenRequestService
+	queryService    OrderQueryService
+	orderRepository OrderRepository
+	kitchenService  KitchenRequestService
 	statusEmitter   StatusEmitter
 	dispatcher      command.Dispatcher
 }
 
 func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *stack.Stack) middleware.EndpointsSetup {
-	repository := m.NewRepository(database)
-	orderNumberRepository := m.NewOrderNumberRepository(database)
-	queryService := m.OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
-	kitchenService := service.NewKitchenServiceFrom(kitchenTopicConfigs)
+	repository := NewRepository(database)
+	orderNumberRepository := NewOrderNumberRepository(database)
+	queryService := OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
+	kitchenService := NewKitchenServiceFrom(kitchenTopicConfigs)
 	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
 	return &Endpoints{
@@ -44,7 +42,7 @@ func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.Topi
 	}
 }
 
-func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order m.NewOrder) command.Command {
+func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order NewOrder) command.Command {
 	return &NewRequestCommand{
 		Stack:          e.stack,
 		Repository:     e.orderRepository,
@@ -61,7 +59,7 @@ func (e *Endpoints) Setup(r *gin.Engine) {
 }
 
 func (e *Endpoints) newOrderHandler(c *gin.Context) {
-	newOrder := m.NewOrder{}
+	newOrder := NewOrder{}
 	err := c.ShouldBindJSON(&newOrder)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Schema Error. %s", err)
@@ -93,7 +91,7 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, map[string]int64{"orderNumber": orderNumber})
 }
 
-func validate(c m.NewOrder) error {
+func validate(c NewOrder) error {
 	var errs []error
 	for _, item := range c.Items {
 		if err := i.IsKnownItem(item.Name); err != nil {

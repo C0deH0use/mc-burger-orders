@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/data"
-	"mc-burger-orders/testing/stubs"
 	"testing"
 	"time"
 )
@@ -27,7 +26,7 @@ func TestHandler_CreateNewItem(t *testing.T) {
 func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 	// given
 	emptyStack := stack.NewEmptyStack()
-	prepMealStub := stubs.NewStubService()
+	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
@@ -48,14 +47,14 @@ func shouldPrepareNewItemsWhenRequestedInTheMessage(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
-	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(MealPrepMatchingFnc("hamburger", 1)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(MealPrepMatchingFnc("cheeseburger", 2)))
 }
 
 func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 	// given
 	emptyStack := stack.NewEmptyStack()
-	prepMealStub := stubs.NewStubService()
+	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
@@ -76,15 +75,14 @@ func shouldPrepareItemsWhenMessageMissingOrderNumber(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("hamburger", 1)))
-	assert.True(t, prepMealStub.HaveBeenCalledWith(stubs.MealPrepMatchingFnc("cheeseburger", 2)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(MealPrepMatchingFnc("hamburger", 1)))
+	assert.True(t, prepMealStub.HaveBeenCalledWith(MealPrepMatchingFnc("cheeseburger", 2)))
 }
 
 func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
 	// given
 	emptyStack := stack.NewEmptyStack()
-	stub := stubs.NewStubService()
-	prepMealStub := stubs.NewStubService()
+	prepMealStub := NewMealPrepService()
 	handler := &Handler{
 		kitchenCooks:    workerpool.New(1),
 		mealPreparation: prepMealStub,
@@ -101,7 +99,6 @@ func shouldSkipWhenMessageHasZeroRequests(t *testing.T) {
 	assert.Nil(t, err)
 
 	// and
-	assert.Equal(t, 0, stub.CalledCnt())
 	assert.Equal(t, 0, prepMealStub.CalledCnt())
 }
 

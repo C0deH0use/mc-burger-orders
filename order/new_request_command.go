@@ -6,22 +6,20 @@ import (
 	"github.com/segmentio/kafka-go"
 	item2 "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
-	om "mc-burger-orders/order/model"
-	"mc-burger-orders/order/service"
 	"mc-burger-orders/stack"
 )
 
 type NewRequestCommand struct {
-	Repository     om.OrderRepository
+	Repository     OrderRepository
 	Stack          *stack.Stack
-	KitchenService service.KitchenRequestService
+	KitchenService KitchenRequestService
 	StatusEmitter  StatusEmitter
 	OrderNumber    int64
-	NewOrder       om.NewOrder
+	NewOrder       NewOrder
 }
 
 func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
-	orderRecord := om.CreateNewOrder(c.OrderNumber, c.NewOrder)
+	orderRecord := CreateNewOrder(c.OrderNumber, c.NewOrder)
 
 	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)
 	statusUpdated := false
@@ -60,7 +58,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 	return true, nil
 }
 
-func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item item2.Item, orderRecord *om.Order) (statusUpdated bool, err error) {
+func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item item2.Item, orderRecord *Order) (statusUpdated bool, err error) {
 	log.Info.Println("Item", item, "needs to be prepared first. Checking stack if one in available.")
 	amountInStock := c.Stack.GetCurrent(item.Name)
 	if amountInStock == 0 {

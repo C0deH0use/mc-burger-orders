@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
-	"mc-burger-orders/order/utils"
+	"mc-burger-orders/utils"
 )
 
 func (h *Handler) CreateNewItem(message kafka.Message) (bool, error) {

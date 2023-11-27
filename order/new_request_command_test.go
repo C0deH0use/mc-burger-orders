@@ -170,7 +170,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1, expectedOrderNumber)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1)))
 
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
@@ -231,8 +231,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 2, expectedOrderNumber)))
-	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1, expectedOrderNumber)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 2)))
+	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1)))
 
 	// and
 	assert.Equal(t, 0, stubStatusEmitter.CalledCnt())

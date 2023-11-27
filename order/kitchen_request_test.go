@@ -8,7 +8,6 @@ import (
 	"mc-burger-orders/event"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/testing/utils"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -48,16 +47,14 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 	// given
 	itemName := "hamburger"
 	quantity := 2
-	orderNumber := int64(122)
 
 	// when
-	err := sut.RequestForOrder(ctx, itemName, quantity, orderNumber)
+	err := sut.RequestNew(ctx, itemName, quantity)
 
 	// then
 	assert.Nil(t, err)
 
 	// and
-	expectedOrderHeader := kafka.Header{Key: "order", Value: []byte(strconv.FormatInt(orderNumber, 10))}
 	expectedEventHeader := kafka.Header{Key: "event", Value: []byte("request-item")}
 	expectedMessage := make([]*dto.KitchenRequestMessage, 0)
 	expectedMessage = append(expectedMessage, dto.NewKitchenRequestMessage(itemName, quantity))
@@ -69,8 +66,7 @@ func shouldSendNewMessageToTopic(t *testing.T) {
 
 	// and
 	assert.Equal(t, topic, message.Topic)
-	assert.Len(t, message.Headers, 2)
-	assert.Contains(t, message.Headers, expectedOrderHeader)
+	assert.Len(t, message.Headers, 1)
 	assert.Contains(t, message.Headers, expectedEventHeader)
 
 	actualMessage := make([]*dto.KitchenRequestMessage, 0)

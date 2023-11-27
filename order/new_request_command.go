@@ -63,7 +63,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item ite
 	amountInStock := c.Stack.GetCurrent(item.Name)
 	if amountInStock == 0 {
 		log.Info.Printf("Sending Request to kitchen for %d new %v", item.Quantity, item.Name)
-		err = c.KitchenService.RequestForOrder(ctx, item.Name, item.Quantity, orderRecord.OrderNumber)
+		err = c.KitchenService.RequestNew(ctx, item.Name, item.Quantity)
 		if err != nil {
 			return statusUpdated, err
 		}
@@ -78,7 +78,7 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item ite
 			remaining := item.Quantity - itemTaken
 
 			log.Info.Printf("Sending Request to kitchen for %d new %v", remaining, item.Name)
-			err = c.KitchenService.RequestForOrder(ctx, item.Name, remaining, orderRecord.OrderNumber)
+			err = c.KitchenService.RequestNew(ctx, item.Name, remaining)
 			if err != nil {
 				return statusUpdated, err
 			}

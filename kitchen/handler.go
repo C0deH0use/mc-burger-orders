@@ -45,7 +45,6 @@ func (h *Handler) AddCommands(event string, commands ...command.Command) {
 }
 
 func (h *Handler) GetCommands(_ kafka.Message) ([]command.Command, error) {
-	log.Warning.Printf("No Commands defined in Kitchen Handler")
 	return make([]command.Command, 0), nil
 }
 

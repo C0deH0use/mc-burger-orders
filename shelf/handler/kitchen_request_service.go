@@ -1,4 +1,4 @@
-package order
+package handler
 
 import (
 	"context"
@@ -7,31 +7,35 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen"
-	"mc-burger-orders/order/dto"
 	"mc-burger-orders/utils"
 	"strconv"
 	"time"
 )
 
-type KitchenRequestService interface {
+type NewItemRequestMessage struct {
+	ItemName string `json:"itemName"`
+	Quantity int    `json:"quantity"`
+}
+
+type KitchenService interface {
 	RequestNew(ctx context.Context, itemName string, quantity int) error
 }
 
-type KitchenService struct {
+type KitchenServiceImpl struct {
 	*event.DefaultWriter
 }
 
-func NewKitchenServiceFrom(config *event.TopicConfigs) *KitchenService {
+func NewKitchenService(config *event.TopicConfigs) *KitchenServiceImpl {
 	defaultWriter := event.NewTopicWriter(config)
-	return &KitchenService{defaultWriter}
+	return &KitchenServiceImpl{defaultWriter}
 }
 
-func (s *KitchenService) RequestNew(ctx context.Context, itemName string, quantity int) error {
+func (s *KitchenServiceImpl) RequestNew(ctx context.Context, itemName string, quantity int) error {
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, utils.EventTypeHeader(kitchen.RequestItemEvent))
 
-	message := make([]*dto.KitchenRequestMessage, 0)
-	message = append(message, dto.NewKitchenRequestMessage(itemName, quantity))
+	message := make([]*NewItemRequestMessage, 0)
+	message = append(message, &NewItemRequestMessage{itemName, quantity})
 	msgValue, err := json.Marshal(message)
 	if err != nil {
 		err = fmt.Errorf("failed to convert message details to bytes. Reason: %s", err)

@@ -49,7 +49,7 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message) (b
 			current := p.Shelf.GetCurrent(itemUpdate.ItemName)
 			if current < orderQuantity {
 				quantityToRequest := orderQuantity - current
-				err = p.KitchenService.RequestForOrder(ctx, itemUpdate.ItemName, quantityToRequest, order.OrderNumber)
+				err = p.KitchenService.RequestNew(ctx, itemUpdate.ItemName, quantityToRequest)
 
 				if err != nil {
 					log.Error.Println(err.Error())

@@ -22,10 +22,10 @@ type Shelf struct {
 }
 
 func NewEmptyShelf() *Shelf {
-	return &Shelf{data: CleanStack()}
+	return &Shelf{data: CleanShelf()}
 }
 
-func CleanStack() *sync.Map {
+func CleanShelf() *sync.Map {
 	syncMap := &sync.Map{}
 	for itemConfig := range item.MenuItems {
 		if !item.MenuItems[itemConfig].InstantReady {

@@ -8,7 +8,7 @@ import (
 )
 
 type OrderQueryService struct {
-	OrderNumberRepository OrderNumberRepository
+	OrderNumberRepository FetchNextOrderNumberRepository
 	Repository            FetchManyRepository
 }
 

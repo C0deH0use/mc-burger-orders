@@ -28,9 +28,10 @@ type FetchNextOrderNumberRepository interface {
 func (r *OrderNumberRepositoryImpl) GetNext(ctx context.Context) (int64, error) {
 	log.Info.Println("Get next order number")
 	limit := int64(1)
-	sortDef := map[string]int{
-		"number": 1,
-	}
+	sortDef := bson.D{{
+		Key:   "number",
+		Value: -1,
+	}}
 
 	opts := &options.FindOptions{
 		Limit: &limit,

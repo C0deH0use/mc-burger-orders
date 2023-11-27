@@ -13,16 +13,12 @@ func NewOrderNumberRepository(database *mongo.Database) *OrderNumberRepositoryIm
 	return &OrderNumberRepositoryImpl{c: collection}
 }
 
-type OrderNumberRepository interface {
+type FetchNextOrderNumberRepository interface {
 	GetNext(ctx context.Context) (int64, error)
 }
 
 type OrderNumberRepositoryImpl struct {
 	c *mongo.Collection
-}
-
-type FetchNextOrderNumberRepository interface {
-	GetNext(ctx context.Context) (int, error)
 }
 
 func (r *OrderNumberRepositoryImpl) GetNext(ctx context.Context) (int64, error) {

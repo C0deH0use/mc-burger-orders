@@ -34,6 +34,7 @@ func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool,
 }
 
 func TestStack_Add(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 	kafkaContainer, brokers = utils.TestWithKafka(t, ctx)
 

@@ -13,7 +13,6 @@ import (
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	"mc-burger-orders/testing/utils"
-	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -27,9 +26,7 @@ var (
 )
 
 func TestOrdersHandler_Handle(t *testing.T) {
-	if os.Getenv("INTEGRATION") == "" {
-		t.Skip("skipping integration tests: set INTEGRATION environment variable")
-	}
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 
 	mongoContainer, database = utils.TestWithMongo(t, ctx)

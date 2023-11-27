@@ -15,7 +15,6 @@ import (
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
@@ -157,9 +156,6 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 
 func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	// given
-	if os.Getenv("INTEGRATION") == "1" {
-		t.Skip()
-	}
 	order := map[string]any{
 		"customerId": 10,
 		"items":      []string{},

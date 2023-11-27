@@ -21,7 +21,6 @@ import (
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 )
@@ -36,11 +35,8 @@ var (
 	topic                      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
-func TestOrderHttpEndpoints(t *testing.T) {
-	if os.Getenv("INTEGRATION") == "" {
-		t.Skip()
-	}
-
+func TestIntegrationOrder_HttpEndpoints(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 	mongoContainer, database = utils.TestWithMongo(t, ctx)
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)

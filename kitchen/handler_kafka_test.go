@@ -23,8 +23,8 @@ var (
 	topic       = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
-func TestCommandsHandler_WithKafkaMessages(t *testing.T) {
-
+func TestIntegrationHandler_WithKafkaMessages(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 	testStack = stack2.NewEmptyStack()
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)

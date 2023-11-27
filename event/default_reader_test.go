@@ -36,7 +36,8 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 	return int64(1010), nil
 }
 
-func TestDefaultReader(t *testing.T) {
+func TestIntegration_DefaultReader(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx := context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig = &TopicConfigs{

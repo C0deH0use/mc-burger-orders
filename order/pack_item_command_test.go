@@ -11,7 +11,6 @@ import (
 	m "mc-burger-orders/order/model"
 	"mc-burger-orders/stack"
 	stubs2 "mc-burger-orders/testing/stubs"
-	"os"
 	"testing"
 	"time"
 )
@@ -31,10 +30,6 @@ var (
 )
 
 func TestPackItemCommand_Execute(t *testing.T) {
-	if os.Getenv("INTEGRATION") == "1" {
-		t.Skip()
-	}
-
 	t.Run("should add new items added to stack when command executed", shouldPackItemPointedInMessage)
 	t.Run("should set to READY when all items are packed", shouldFinishPackingOrderWhenLastItemsCameFromKitchen)
 	t.Run("should try and pack items to multiple orders when new items are added to stack", shouldPackMultipleOrdersWhenMultipleItemsAdded)

@@ -10,7 +10,6 @@ import (
 	"mc-burger-orders/event"
 	"mc-burger-orders/order/dto"
 	"mc-burger-orders/testing/utils"
-	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -23,10 +22,8 @@ var (
 	topic      = fmt.Sprintf("test-kitchen-requests-%d", rand.Intn(100))
 )
 
-func TestKitchenService_RequestForOrder(t *testing.T) {
-	if os.Getenv("INTEGRATION") == "1" {
-		t.Skip()
-	}
+func TestIntegrationKitchenService_RequestForOrder(t *testing.T) {
+	utils.IntegrationTest(t)
 	ctx = context.Background()
 	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
 	kafkaConfig := event.TestTopicConfigs(topic, brokers...)

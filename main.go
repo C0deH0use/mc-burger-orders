@@ -8,6 +8,8 @@ import (
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
 	"mc-burger-orders/shelf"
+	sh "mc-burger-orders/shelf/handler"
+	"time"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
@@ -23,6 +25,9 @@ func main() {
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
 	ordersShelf.ConfigureWriter(event.NewTopicWriter(stackTopicConfigs))
+	shelfHandler := sh.NewShelfHandler(kitchenTopicConfigs, ordersShelf)
+	eventBus.AddHandler(shelfHandler)
+
 	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
 	orderStatusReader := event.NewTopicReader(orderStatusTopicConfigs, eventBus)
 
@@ -46,6 +51,7 @@ func main() {
 
 	orderEndpoints.Setup(r)
 
+	ScheduleJobs(eventBus, shelfHandler)
 	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go orderStatusReader.SubscribeToTopic(make(chan kafka.Message))
@@ -64,4 +70,19 @@ func loadEnv() {
 	if err != nil {
 		log.Error.Fatalf("Error loading .env file")
 	}
+}
+
+func ScheduleJobs(bus event.EventBus, shelfHandler *sh.Handler) {
+	go func() {
+		for {
+			go func() {
+				err := bus.PublishEvent(shelfHandler.CheckFavoritesOnShelfMessage())
+				if err != nil {
+					log.Error.Println("failed to publish message on event bus", err)
+				}
+			}()
+
+			time.Sleep(3 * time.Minute)
+		}
+	}()
 }

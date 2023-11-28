@@ -393,7 +393,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, kitchenService.CalledCnt())
-	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 6, thirdOrderNumber)))
+	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 6)))
 
 	// and
 	assert.Equal(t, 2, statusEmitter.CalledCnt())
@@ -455,7 +455,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	// and
 	assert.Equal(t, 1, kitchenService.CalledCnt())
-	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 3, expectedOrderNumber)))
+	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 3)))
 
 	// and
 	assert.Equal(t, 1, statusEmitter.CalledCnt())

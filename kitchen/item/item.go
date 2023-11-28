@@ -9,20 +9,21 @@ type Item struct {
 
 type MenuItemConfigs struct {
 	InstantReady    bool
+	Favorite        bool
 	PreparationTime time.Duration
 }
 
 var MenuItems = map[string]MenuItemConfigs{
-	"hamburger":       {false, 2500},
-	"cheeseburger":    {false, 4500},
-	"double-cheese":   {false, 3750},
-	"mc-spicy":        {false, 3200},
-	"mc-chicken":      {false, 4200},
-	"mr-chicken-wrap": {false, 6000},
-	"spicy-stripes":   {false, 4100},
-	"hot-wings":       {false, 3200},
-	"fries":           {false, 1500},
-	"coke":            {true, 0},
-	"ice-cream":       {true, 0},
-	"fanta":           {true, 0},
+	"hamburger":       {false, true, 2500},
+	"cheeseburger":    {false, true, 4500},
+	"double-cheese":   {false, false, 3750},
+	"mc-spicy":        {false, false, 3200},
+	"mc-chicken":      {false, false, 4200},
+	"mr-chicken-wrap": {false, false, 6000},
+	"spicy-stripes":   {false, true, 4100},
+	"hot-wings":       {false, true, 3200},
+	"fries":           {false, true, 1500},
+	"coke":            {true, false, 0},
+	"ice-cream":       {true, false, 0},
+	"fanta":           {true, false, 0},
 }

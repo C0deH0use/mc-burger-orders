@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/command"
+	"mc-burger-orders/event"
 	"mc-burger-orders/log"
 	"mc-burger-orders/order"
 	"mc-burger-orders/shelf"
 	utils2 "mc-burger-orders/utils"
+	"strconv"
+	"time"
 )
 
 type Handler struct {
@@ -16,10 +19,10 @@ type Handler struct {
 	Shelf          *shelf.Shelf
 }
 
-func NewShelfHandler(k order.KitchenRequestService, s *shelf.Shelf) *Handler {
+func NewShelfHandler(kitchenTopicConfigs *event.TopicConfigs, s *shelf.Shelf) *Handler {
 	return &Handler{
-		KitchenService: k,
 		Shelf:          s,
+		KitchenService: NewKitchenService(kitchenTopicConfigs),
 		defaultHandler: command.DefaultCommandHandler{},
 	}
 }
@@ -66,4 +69,15 @@ func (o *Handler) GetCommands(message kafka.Message) ([]command.Command, error) 
 	}
 
 	return commands, nil
+}
+
+func (o *Handler) CheckFavoritesOnShelfMessage() kafka.Message {
+	headers := make([]kafka.Header, 0)
+	headers = append(headers, utils2.EventTypeHeader(shelf.CheckFavoritesOnShelfEvent))
+	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	return kafka.Message{
+		Headers: headers,
+		Key:     msgKey,
+	}
 }

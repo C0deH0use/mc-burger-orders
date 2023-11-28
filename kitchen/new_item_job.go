@@ -15,8 +15,6 @@ func (h *Handler) CreateNewItem(message kafka.Message) (bool, error) {
 	}
 
 	messageKey := string(message.Key)
-	log.Info.Printf("CookRequest: %v | Order: %d", messageKey)
-
 	for _, request := range *requests {
 		log.Info.Printf("CookRequest: %v | Starting to prepare new item -> %v in amount: `%d`", messageKey, request.ItemName, request.Quantity)
 

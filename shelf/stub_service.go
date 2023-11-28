@@ -4,14 +4,20 @@ import (
 	"context"
 	"log"
 	"mc-burger-orders/testing/stubs"
+	"sync"
 )
 
 type StubService struct {
+	wg *sync.WaitGroup
 	stubs.DefaultStubService
 }
 
 func NewShelfStubService() *StubService {
-	return &StubService{stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
+	return &StubService{nil, stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
+}
+
+func NewShelfStubServiceWithWG(wg *sync.WaitGroup) *StubService {
+	return &StubService{wg, stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
 }
 
 func RequestMatchingFnc(itemName string, quantity int) func(args map[string]any) bool {
@@ -30,5 +36,9 @@ func (s *StubService) RequestNew(ctx context.Context, itemName string, quantity 
 		"quantity": quantity,
 	}
 	s.MethodCalled = append(s.MethodCalled, args)
+
+	if s.wg != nil {
+		s.wg.Done()
+	}
 	return nil
 }

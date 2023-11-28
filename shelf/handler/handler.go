@@ -9,8 +9,6 @@ import (
 	"mc-burger-orders/order"
 	"mc-burger-orders/shelf"
 	utils2 "mc-burger-orders/utils"
-	"strconv"
-	"time"
 )
 
 type Handler struct {
@@ -69,15 +67,4 @@ func (o *Handler) GetCommands(message kafka.Message) ([]command.Command, error) 
 	}
 
 	return commands, nil
-}
-
-func (o *Handler) CheckFavoritesOnShelfMessage() kafka.Message {
-	headers := make([]kafka.Header, 0)
-	headers = append(headers, utils2.EventTypeHeader(shelf.CheckFavoritesOnShelfEvent))
-	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
-
-	return kafka.Message{
-		Headers: headers,
-		Key:     msgKey,
-	}
 }

@@ -7,9 +7,9 @@ import (
 	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
+	"mc-burger-orders/schedule"
 	"mc-burger-orders/shelf"
 	sh "mc-burger-orders/shelf/handler"
-	"time"
 )
 import "github.com/gin-gonic/gin"
 import "mc-burger-orders/order"
@@ -20,16 +20,17 @@ func main() {
 	ordersShelf := shelf.NewEmptyShelf()
 	eventBus := event.NewInternalEventBus()
 
-	stackTopicConfigs := shelf.TopicConfigsFromEnv()
+	shelfTopicConfigs := shelf.TopicConfigsFromEnv()
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
-	ordersShelf.ConfigureWriter(event.NewTopicWriter(stackTopicConfigs))
+	ordersShelf.ConfigureWriter(event.NewTopicWriter(shelfTopicConfigs))
+	shelfHandlerTopicConfig := sh.TopicConfigsFromEnv()
 	shelfHandler := sh.NewShelfHandler(kitchenTopicConfigs, ordersShelf)
-	eventBus.AddHandler(shelfHandler)
 
-	stackTopicReader := event.NewTopicReader(stackTopicConfigs, eventBus)
+	stackTopicReader := event.NewTopicReader(shelfTopicConfigs, eventBus)
 	orderStatusReader := event.NewTopicReader(orderStatusTopicConfigs, eventBus)
+	shelfSchedulerReader := event.NewTopicReader(shelfHandlerTopicConfig, eventBus)
 
 	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
 
@@ -44,6 +45,7 @@ func main() {
 		log.Error.Panicf("error when setting trusted proxies. Reason: %s", err)
 	}
 
+	eventBus.AddHandler(shelfHandler)
 	eventBus.AddHandler(orderCommandsHandler)
 	eventBus.AddHandler(kitchenEventsHandler)
 
@@ -51,10 +53,11 @@ func main() {
 
 	orderEndpoints.Setup(r)
 
-	ScheduleJobs(eventBus, shelfHandler)
 	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go orderStatusReader.SubscribeToTopic(make(chan kafka.Message))
+	go shelfSchedulerReader.SubscribeToTopic(make(chan kafka.Message))
+	go schedule.ShelfJobs()
 
 	err = r.Run()
 
@@ -64,25 +67,9 @@ func main() {
 }
 
 func loadEnv() {
-	// load .env file
 	err := godotenv.Load()
 
 	if err != nil {
 		log.Error.Fatalf("Error loading .env file")
 	}
-}
-
-func ScheduleJobs(bus event.EventBus, shelfHandler *sh.Handler) {
-	go func() {
-		for {
-			go func() {
-				err := bus.PublishEvent(shelfHandler.CheckFavoritesOnShelfMessage())
-				if err != nil {
-					log.Error.Println("failed to publish message on event bus", err)
-				}
-			}()
-
-			time.Sleep(3 * time.Minute)
-		}
-	}()
 }

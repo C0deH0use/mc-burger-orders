@@ -35,8 +35,7 @@ func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool,
 
 func TestStack_Add(t *testing.T) {
 	utils.IntegrationTest(t)
-	ctx := context.Background()
-	kafkaContainer, brokers = utils.TestWithKafka(t, ctx)
+	kafkaContainer, brokers = utils.TestWithKafka(t, context.Background())
 
 	log.Printf("Starting Shelf Test tests....")
 
@@ -45,7 +44,7 @@ func TestStack_Add(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
-		utils.TerminateKafka(t, ctx, kafkaContainer)
+		utils.TerminateKafka(t, context.Background(), kafkaContainer)
 	})
 }
 

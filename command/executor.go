@@ -5,6 +5,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/log"
 	"reflect"
+	"time"
 )
 
 type Dispatcher interface {
@@ -16,7 +17,9 @@ type DefaultDispatcher struct{}
 func (r *DefaultDispatcher) Execute(c Command, message kafka.Message) (bool, error) {
 	log.Info.Println("About to execute following command", reflect.TypeOf(c))
 
-	result, err := c.Execute(context.Background(), message)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, err := c.Execute(ctx, message)
 	if err != nil {
 		log.Error.Printf("While executing command %v following error occurred %v\n", c, err.Error())
 		return false, err
@@ -24,4 +27,5 @@ func (r *DefaultDispatcher) Execute(c Command, message kafka.Message) (bool, err
 
 	log.Info.Println("Command finished successfully")
 	return result, nil
+
 }

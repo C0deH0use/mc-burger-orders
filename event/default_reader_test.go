@@ -38,8 +38,7 @@ func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {
 
 func TestIntegration_DefaultReader(t *testing.T) {
 	utils.IntegrationTest(t)
-	ctx := context.Background()
-	kafkaContainer, brokers := utils.TestWithKafka(t, ctx)
+	kafkaContainer, brokers := utils.TestWithKafka(t, context.Background())
 	kafkaConfig = &TopicConfigs{
 		Topic:             topic,
 		Brokers:           brokers,
@@ -52,7 +51,7 @@ func TestIntegration_DefaultReader(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
-		utils.TerminateKafka(t, ctx, kafkaContainer)
+		utils.TerminateKafka(t, context.Background(), kafkaContainer)
 	})
 }
 

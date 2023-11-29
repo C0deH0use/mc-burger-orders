@@ -21,8 +21,6 @@ func NewTopicWriter(configuration *TopicConfigs) *DefaultWriter {
 	if len(configuration.Brokers) == 0 {
 		log.Error.Panicln("missing at least one Kafka Address")
 	}
-	log.Warning.Printf("Creating a new TopicWriter for topic: %v", configuration.Topic)
-
 	conn := configuration.ConnectToBroker()
 	configuration.CreateTopic(conn)
 	return &DefaultWriter{conn: conn, configuration: configuration}

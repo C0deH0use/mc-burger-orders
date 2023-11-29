@@ -51,7 +51,6 @@ func (c *TopicConfigs) CreateTopic(conn *kafka.Conn) {
 
 	topicConfig := kafka.TopicConfig{Topic: c.Topic, NumPartitions: c.NumPartitions, ReplicationFactor: c.ReplicationFactor}
 
-	log.Warning.Printf("Creating new topic: %v. Configs: %+v", c.Brokers, topicConfig)
 	err := conn.CreateTopics(topicConfig)
 	if err != nil {
 		log.Error.Panicln("failed to create new Topic", topicConfig, ".Error reason:", err.Error())

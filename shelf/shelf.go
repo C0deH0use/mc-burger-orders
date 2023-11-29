@@ -97,9 +97,12 @@ func (s *Shelf) SendUpdateEvent(item string, quantity int) {
 	}
 
 	if kafkaMessage, err := createMessage(item, quantity); err == nil {
-		if err = s.writer.SendMessage(context.Background(), kafkaMessage); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if err = s.writer.SendMessage(ctx, kafkaMessage); err != nil {
 			log.Error.Println("failed to send message to topic", s.writer.TopicName())
 		}
+
+		defer cancel()
 	}
 }
 

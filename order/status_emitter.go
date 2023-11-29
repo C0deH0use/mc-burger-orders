@@ -39,7 +39,9 @@ func (r *StatusEmitterService) EmitStatusUpdatedEvent(order *Order) {
 			Value:   payload,
 		}
 		go func() {
-			_ = writer.SendMessage(context.Background(), message)
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			_ = writer.SendMessage(ctx, message)
+			defer cancel()
 		}()
 	}
 }

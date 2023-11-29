@@ -17,10 +17,12 @@ func ShelfJobs() {
 	for {
 		go func() {
 			msg := CheckFavoritesOnShelfMessage()
-			err := writer.SendMessage(context.Background(), msg)
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			err := writer.SendMessage(ctx, msg)
 			if err != nil {
 				log.Error.Printf("failed to publish message on topic %v. Error reason: %v", topicConfigs.Topic, err)
 			}
+			defer cancel()
 		}()
 
 		time.Sleep(3 * time.Minute)

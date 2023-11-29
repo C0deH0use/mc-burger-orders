@@ -1,11 +1,10 @@
 # Purpose of the repository
 The main reason for this project is to create a playground to test different concepts, frameworks, and design pattern implementations in the Go language. 
-My purpose is to learn the language, and frameworks while working on a real word use case that will require the involvement of multiple different technologies. 
+My purpose is to learn the language, and frameworks while working on a real-world use case that will require the involvement of multiple different technologies. 
 
 The following goals are put on this project: 
 - [ ] Learn Gin framework to handle REST requests,
-- [ ] Learn how ORM solutions work with GIN (GORM to connect with a MongoDB)
-- [ ] Learn how to take advantage of Kafka while communicating between different services.
+- [ ] Learn how to take advantage of Kafka while communicating between different services (process streams for analytics (M2)).
 - [ ] Using EventSourcing to communicate between services, persists events on event store db
 - [ ] Expose specific data using WebSockets. ***Test different solutions here.
 - [ ] Create analytics for estimations from event data.

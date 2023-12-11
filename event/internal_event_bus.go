@@ -5,7 +5,6 @@ import (
 	"mc-burger-orders/command"
 	"mc-burger-orders/log"
 	"mc-burger-orders/utils"
-	"reflect"
 )
 
 type InternalEventBus struct {
@@ -19,26 +18,21 @@ func NewInternalEventBus() *InternalEventBus {
 	}
 }
 
-func (b *InternalEventBus) PublishEvent(message kafka.Message) error {
+func (b *InternalEventBus) PublishEvent(message kafka.Message, resultsCommands chan command.TypedResult) {
 	eventType, err := utils.GetEventType(message)
 	if err != nil {
-		log.Error.Println(err.Error())
-		return err
+		resultsCommands <- command.NewErrorResult(eventType, err)
+		close(resultsCommands)
+		return
 	}
 
 	if handlers, ok := b.eventHandlers[eventType]; ok {
 		for handler := range handlers {
-			result, err := handler.Handle(message)
-			if err != nil {
-				log.Error.Printf("Error when processing following event: %v by handler -> %v\n", eventType, reflect.TypeOf(handler))
-				return err
-			}
-			log.Info.Printf("Event %v was handled with result %v\n", eventType, result)
+			handler.Handle(message, resultsCommands)
 		}
-		return nil
+		return
 	}
 	log.Error.Printf("Event %v does not have any handled", eventType)
-	return nil
 }
 
 func (b *InternalEventBus) AddHandler(handler command.Handler) {

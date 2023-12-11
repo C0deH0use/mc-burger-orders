@@ -26,10 +26,10 @@ type StubCommand struct {
 	waitG       *sync.WaitGroup
 }
 
-func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
+func (s *StubCommand) Execute(ctx context.Context, message kafka.Message, result chan command.TypedResult) {
 	s.Invocations++
 	s.waitG.Done()
-	return true, nil
+	result <- command.TypedResult{Result: true, Type: "StubCommand"}
 }
 
 func (s *StubCommand) GetOrderNumber(message kafka.Message) (int64, error) {

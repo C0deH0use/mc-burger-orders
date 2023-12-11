@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"github.com/segmentio/kafka-go"
+	"mc-burger-orders/command"
 	"mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/shelf"
@@ -13,7 +14,7 @@ type RequestMissingItemsOnShelfCommand struct {
 	Shelf          *shelf.Shelf
 }
 
-func (r *RequestMissingItemsOnShelfCommand) Execute(ctx context.Context, _ kafka.Message) (bool, error) {
+func (r *RequestMissingItemsOnShelfCommand) Execute(ctx context.Context, _ kafka.Message, commandResults chan command.TypedResult) {
 
 	log.Info.Printf("Checking the state of Favorites on Shelf....")
 
@@ -30,10 +31,11 @@ func (r *RequestMissingItemsOnShelfCommand) Execute(ctx context.Context, _ kafka
 			err := r.KitchenService.RequestNew(ctx, favoriteItem, toRequest)
 
 			if err != nil {
-				return false, err
+				commandResults <- command.NewErrorResult("RequestMissingItemsOnShelfCommand", err)
+				return
 			}
 		}
 	}
 
-	return true, nil
+	commandResults <- command.NewSuccessfulResult("RequestMissingItemsOnShelfCommand")
 }

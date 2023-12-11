@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/segmentio/kafka-go"
+	"mc-burger-orders/command"
 	item2 "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/log"
 	"mc-burger-orders/shelf"
@@ -18,7 +19,7 @@ type NewRequestCommand struct {
 	NewOrder       NewOrder
 }
 
-func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
+func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message, commandResults chan command.TypedResult) {
 	orderRecord := CreateNewOrder(c.OrderNumber, c.NewOrder)
 
 	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)
@@ -26,7 +27,8 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 	for _, item := range c.NewOrder.Items {
 		isReady, err := item2.IsItemReady(item.Name)
 		if err != nil {
-			return false, err
+			commandResults <- command.NewErrorResult("NewRequestCommand", err)
+			return
 		}
 
 		if isReady {
@@ -37,7 +39,8 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 		} else {
 			sUpdated, err := c.handlePreparationItems(ctx, item, &orderRecord)
 			if err != nil {
-				return false, err
+				commandResults <- command.NewErrorResult("NewRequestCommand", err)
+				return
 			}
 			if sUpdated {
 				statusUpdated = sUpdated
@@ -47,15 +50,17 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message) 
 
 	result, err := c.Repository.InsertOrUpdate(ctx, orderRecord)
 	if err != nil {
-		return false, err
+		commandResults <- command.NewErrorResult("NewRequestCommand", err)
+		return
 	}
 	if result == nil {
-		return false, fmt.Errorf("failed to store Order in DB, despite MongoDB Driver returning success")
+		commandResults <- command.NewErrorResult("NewRequestCommand", fmt.Errorf("failed to store Order in DB, despite MongoDB Driver returning success"))
+		return
 	}
 	if statusUpdated {
 		c.StatusEmitter.EmitStatusUpdatedEvent(result)
 	}
-	return true, nil
+	commandResults <- command.NewSuccessfulResult("NewRequestCommand")
 }
 
 func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item item2.Item, orderRecord *Order) (statusUpdated bool, err error) {

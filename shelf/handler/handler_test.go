@@ -51,7 +51,7 @@ func shouldRequestNewItemsWhenHandlingCheckFavoriteMessages(t *testing.T) {
 		defaultHandler: command.DefaultCommandHandler{},
 	}
 
-	sendMessage()
+	go sendMessage()
 
 	eventBus.AddHandler(sut)
 	reader := event.NewTopicReader(shelfHandlerKafkaConfig, eventBus)

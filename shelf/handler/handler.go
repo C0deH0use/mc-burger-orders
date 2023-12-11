@@ -25,14 +25,15 @@ func NewShelfHandler(kitchenTopicConfigs *event.TopicConfigs, s *shelf.Shelf) *H
 	}
 }
 
-func (o *Handler) Handle(message kafka.Message) (bool, error) {
+func (o *Handler) Handle(message kafka.Message, commandResults chan command.TypedResult) {
 	commands, err := o.GetCommands(message)
 	if err != nil {
-		log.Error.Println(err.Error())
-		return false, err
+		commandResults <- command.NewErrorResult("ShelfHandler", err)
+		close(commandResults)
+		return
 	}
 
-	return o.defaultHandler.HandleCommands(message, commands...)
+	o.defaultHandler.HandleCommands(message, commandResults, commands...)
 }
 
 func (o *Handler) GetHandledEvents() []string {

@@ -10,7 +10,7 @@ type Handler interface {
 	AddCommands(event string, commands ...Command)
 	GetHandledEvents() []string
 	GetCommands(message kafka.Message) ([]Command, error)
-	Handle(message kafka.Message) (bool, error)
+	Handle(message kafka.Message, typedResult chan TypedResult)
 }
 
 type DefaultCommandHandler struct {
@@ -56,31 +56,27 @@ func (o *DefaultCommandHandler) GetCommands(message kafka.Message) ([]Command, e
 	return make([]Command, 0), err
 }
 
-func (o *DefaultCommandHandler) Handle(message kafka.Message) (bool, error) {
+func (o *DefaultCommandHandler) Handle(message kafka.Message, commandResults chan TypedResult) {
 	commands, err := o.GetCommands(message)
 	if err != nil {
-		log.Error.Println(err.Error())
-		return false, err
+		commandResults <- NewErrorResult("GetCommandForMessage", err)
+		close(commandResults)
+		return
 	}
 
-	return o.HandleCommands(message, commands...)
+	o.HandleCommands(message, commandResults, commands...)
+	//for commandResult := range commandResults {
+	//	if commandResult.Error != nil {
+	//		log.Error.Println("While executing command", commandResult.Type, "following error occurred", commandResult.Error.Error())
+	//	} else {
+	//		log.Info.Println("Command", commandResult.Type, "finished successfully, with result -", commandResult.Result)
+	//	}
+	//}
 }
 
-func (o *DefaultCommandHandler) HandleCommands(message kafka.Message, commands ...Command) (bool, error) {
-	result := false
+func (o *DefaultCommandHandler) HandleCommands(message kafka.Message, commandResults chan TypedResult, commands ...Command) {
 	log.Info.Printf("Message will be executed on %d command(s)\n", len(commands))
 	for _, command := range commands {
-		commandResult, err := o.Execute(command, message)
-		if err != nil {
-			log.Error.Println("While executing cmd", command, "following error occurred", err.Error())
-			return false, err
-		}
-
-		if commandResult {
-			result = true
-		}
+		go o.Execute(command, message, commandResults)
 	}
-
-	log.Info.Println("Command(s) finished successfully, with result -", result)
-	return result, nil
 }

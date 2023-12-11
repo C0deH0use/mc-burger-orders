@@ -28,9 +28,9 @@ type FakeCommandDispatcher struct {
 	methodCalled bool
 }
 
-func (e *FakeCommandDispatcher) Execute(c command2.Command, message kafka.Message) (bool, error) {
+func (e *FakeCommandDispatcher) Execute(c command2.Command, message kafka.Message, commandResults chan command2.TypedResult) {
 	e.methodCalled = true
-	return e.result, nil
+	commandResults <- command2.TypedResult{Result: e.result, Type: "FakeCommandDispatcher"}
 }
 
 func (f *FakeOrderEndpoints) FakeEndpoints() middleware.EndpointsSetup {

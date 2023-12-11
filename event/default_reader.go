@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"github.com/segmentio/kafka-go"
+	"mc-burger-orders/command"
 	"mc-burger-orders/log"
 	"mc-burger-orders/utils"
 	"time"
@@ -62,10 +63,16 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 
 func (r *DefaultReader) PublishEvent(message kafka.Message) {
 	// TODO: is Message Already Ran
-	err := r.eventBus.PublishEvent(message)
-	if err != nil {
-		log.Error.Printf("failed to publish message on event bus: %v\n", err)
-		r.HandleError(err, message)
+	commandResults := make(chan command.TypedResult)
+	r.eventBus.PublishEvent(message, commandResults)
+
+	for commandResult := range commandResults {
+		if commandResult.Error != nil {
+			log.Error.Println("While executing command", commandResult.Type, "following error occurred", commandResult.Error.Error())
+			r.HandleError(commandResult.Error, message)
+		} else {
+			log.Info.Println("Command", commandResult.Type, "finished successfully, with result -", commandResult.Result)
+		}
 	}
 }
 

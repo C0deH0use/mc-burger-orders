@@ -9,23 +9,14 @@ import (
 )
 
 type Dispatcher interface {
-	Execute(c Command, message kafka.Message) (bool, error)
+	Execute(c Command, message kafka.Message, result chan TypedResult)
 }
 
 type DefaultDispatcher struct{}
 
-func (r *DefaultDispatcher) Execute(c Command, message kafka.Message) (bool, error) {
+func (r *DefaultDispatcher) Execute(c Command, message kafka.Message, result chan TypedResult) {
 	log.Info.Println("About to execute following command", reflect.TypeOf(c))
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	result, err := c.Execute(ctx, message)
-	if err != nil {
-		log.Error.Printf("While executing command %v following error occurred %v\n", c, err.Error())
-		return false, err
-	}
-
-	log.Info.Println("Command finished successfully")
-	return result, nil
-
+	c.Execute(ctx, message, result)
 }

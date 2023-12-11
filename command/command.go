@@ -6,5 +6,5 @@ import (
 )
 
 type Command interface {
-	Execute(ctx context.Context, message kafka.Message) (bool, error)
+	Execute(ctx context.Context, message kafka.Message, result chan TypedResult)
 }

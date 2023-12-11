@@ -74,16 +74,19 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 		return
 	}
 
+	commandResults := make(chan command.TypedResult)
 	orderNumber := e.queryService.GetNextOrderNumber(c)
 	cmd := e.CreateNewOrderCommand(orderNumber, newOrder)
-	result, err := e.dispatcher.Execute(cmd, kafka.Message{})
+	go e.dispatcher.Execute(cmd, kafka.Message{}, commandResults)
 
-	if err != nil {
+	commandResult := <-commandResults
+
+	if commandResult.Error != nil {
 		log.Error.Println(err)
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload(err.Error()))
 		return
 	}
-	if !result {
+	if !commandResult.Result {
 		c.JSON(http.StatusBadRequest, utils.ErrorPayload("Failed to Create new order"))
 		return
 	}

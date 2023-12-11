@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
+	command2 "mc-burger-orders/command"
 	"mc-burger-orders/shelf"
 	"testing"
 )
@@ -29,17 +30,20 @@ func shouldRequestItemsWhenMissingOnShelf(t *testing.T) {
 		Shelf:          s,
 		KitchenService: kitchenStub,
 	}
+	commandResults := make(chan command2.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), kafka.Message{})
+	go sut.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.True(t, result)
-	assert.Nil(t, err)
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Equal(t, 1, kitchenStub.CalledCnt())
 	assert.True(t, kitchenStub.HaveBeenCalledWith(shelf.RequestMatchingFnc("hamburger", 5)))
+	close(commandResults)
 }
 
 func shouldRequestItemsWhenBellowRequiredLimitOfItemsOnShelf(t *testing.T) {
@@ -58,16 +62,21 @@ func shouldRequestItemsWhenBellowRequiredLimitOfItemsOnShelf(t *testing.T) {
 		KitchenService: kitchenStub,
 	}
 
+	commandResults := make(chan command2.TypedResult)
+
 	// when
-	result, err := sut.Execute(context.Background(), kafka.Message{})
+	go sut.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.True(t, result)
-	assert.Nil(t, err)
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Equal(t, 1, kitchenStub.CalledCnt())
 	assert.True(t, kitchenStub.HaveBeenCalledWith(shelf.RequestMatchingFnc("hamburger", 4)))
+
+	close(commandResults)
 }
 
 func shouldNotRequestAnyWhenAllFavoriteItemsAreOnShelf(t *testing.T) {
@@ -85,14 +94,17 @@ func shouldNotRequestAnyWhenAllFavoriteItemsAreOnShelf(t *testing.T) {
 		Shelf:          s,
 		KitchenService: kitchenStub,
 	}
+	commandResults := make(chan command2.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), kafka.Message{})
+	go sut.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.True(t, result)
-	assert.Nil(t, err)
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Zero(t, kitchenStub.CalledCnt())
+	close(commandResults)
 }

@@ -6,7 +6,7 @@ import (
 )
 
 type EventBus interface {
-	PublishEvent(message kafka.Message) error
+	PublishEvent(message kafka.Message, commandsResult chan command.TypedResult)
 
 	AddHandler(command.Handler)
 }

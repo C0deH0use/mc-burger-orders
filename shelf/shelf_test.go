@@ -27,10 +27,10 @@ type StubCommand struct {
 	waitG   *sync.WaitGroup
 }
 
-func (s *StubCommand) Execute(ctx context.Context, message kafka.Message) (bool, error) {
+func (s *StubCommand) Execute(ctx context.Context, message kafka.Message, commandResults chan command.TypedResult) {
 	s.Message = message
 	s.waitG.Done()
-	return true, nil
+	commandResults <- command.NewSuccessfulResult("StubCommand")
 }
 
 func TestStack_Add(t *testing.T) {

@@ -34,7 +34,7 @@ func TopicConfigsFromEnv() *event.TopicConfigs {
 		Topic:                 topic,
 		NumPartitions:         numPartitions,
 		ReplicationFactor:     replicationFactor,
-		WaitMaxTime:           10 * time.Second,
-		AwaitBetweenReadsTime: 2 * time.Second,
+		WaitMaxTime:           2 * time.Second,
+		AwaitBetweenReadsTime: 500 * time.Millisecond,
 	}
 }

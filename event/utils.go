@@ -10,7 +10,7 @@ func TestTopicConfigs(topicName string, brokers ...string) *TopicConfigs {
 		Brokers:               brokers,
 		NumPartitions:         1,
 		ReplicationFactor:     1,
-		WaitMaxTime:           500 * time.Millisecond,
+		WaitMaxTime:           2 * time.Second,
 		AwaitBetweenReadsTime: 500 * time.Millisecond,
 		AutoCreateTopic:       true,
 	}

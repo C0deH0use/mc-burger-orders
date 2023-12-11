@@ -48,11 +48,12 @@ func (h *Handler) GetCommands(_ kafka.Message) ([]command.Command, error) {
 	return make([]command.Command, 0), nil
 }
 
-func (h *Handler) Handle(message kafka.Message) (bool, error) {
+func (h *Handler) Handle(message kafka.Message, commandResults chan command.TypedResult) {
 	eventType, err := utils.GetEventType(message)
 	if err != nil {
 		log.Error.Println(err.Error())
-		return false, err
+		commandResults <- command.NewErrorResult("GetCommandForMessage", err)
+		return
 	}
 
 	switch eventType {
@@ -63,10 +64,11 @@ func (h *Handler) Handle(message kafka.Message) (bool, error) {
 
 				if err != nil {
 					log.Error.Println(err.Error())
+					commandResults <- command.NewErrorResult(RequestItemEvent, err)
+				} else {
+					commandResults <- command.NewSuccessfulResult(RequestItemEvent)
 				}
 			})
 		}
 	}
-
-	return true, nil
 }

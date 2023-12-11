@@ -7,6 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
+	"mc-burger-orders/command"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/shelf"
 	"testing"
@@ -74,13 +75,15 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 		{Name: mcSpicy, Quantity: 3},
 		{Name: hamburger, Quantity: 2},
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.True(t, result, "Successful result")
-	assert.Nil(t, err, "No error message")
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Equal(t, 4, repositoryStub.CalledCnt())
@@ -107,6 +110,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	// and
 	assert.Equal(t, 1, statusEmitter.CalledCnt())
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	close(commandResults)
 }
 
 func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
@@ -157,13 +161,15 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 		{Name: cheeseburger, Quantity: 1},
 		{Name: spicyStripes, Quantity: 6},
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.True(t, result, "Successful result")
-	assert.Nil(t, err, "No error message")
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Equal(t, 8, repositoryStub.CalledCnt())
@@ -196,6 +202,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	assert.Equal(t, 2, statusEmitter.CalledCnt())
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
+	close(commandResults)
 }
 
 func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
@@ -259,13 +266,15 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.True(t, result, "Successful result")
-	assert.Nil(t, err, "No error message")
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	upsertArgs := repositoryStub.GetUpsertArgs()
@@ -302,6 +311,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	assert.Equal(t, 4, statusEmitter.CalledCnt())
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
+	close(commandResults)
 }
 
 func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
@@ -364,13 +374,15 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		KitchenService: kitchenService,
 		StatusEmitter:  statusEmitter,
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.True(t, result, "Successful result")
-	assert.Nil(t, err, "No error message")
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	upsertArgs := repositoryStub.GetUpsertArgs()
@@ -398,6 +410,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	// and
 	assert.Equal(t, 2, statusEmitter.CalledCnt())
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	close(commandResults)
 }
 
 func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
@@ -431,13 +444,15 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 		{Name: spicyStripes, Quantity: 2},
 		{Name: spicyStripes, Quantity: 3},
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.True(t, result, "Successful result")
-	assert.Nil(t, err, "No error message")
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Equal(t, 2, repositoryStub.CalledCnt())
@@ -460,6 +475,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	// and
 	assert.Equal(t, 1, statusEmitter.CalledCnt())
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	close(commandResults)
 }
 
 func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
@@ -478,13 +494,15 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 		StatusEmitter:  statusEmitter,
 		KitchenService: kitchenService,
 	}
+	commandResults := make(chan command.TypedResult)
 
 	// when
-	result, err := sut.Execute(context.Background(), message)
+	go sut.Execute(context.Background(), message, commandResults)
 
 	// then
-	assert.False(t, result)
-	assert.Equal(t, "event message is nil or empty", err.Error())
+	commandResult := <-commandResults
+	assert.False(t, commandResult.Result)
+	assert.Equal(t, "event message is nil or empty", commandResult.Error.Error())
 
 	// and
 	assert.Equal(t, 0, repositoryStub.CalledCnt(), "Order Repository have not been called")
@@ -495,6 +513,7 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 
 	// and
 	assert.Equal(t, 0, statusEmitter.CalledCnt())
+	close(commandResults)
 }
 
 func givenExistingOrder() *Order {

@@ -37,14 +37,14 @@ func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfig
 	}
 }
 
-func (o *OrdersHandler) Handle(message kafka.Message) (bool, error) {
+func (o *OrdersHandler) Handle(message kafka.Message, commandResults chan command.TypedResult) {
 	commands, err := o.GetCommands(message)
 	if err != nil {
-		log.Error.Println(err.Error())
-		return false, err
+		commandResults <- command.NewErrorResult("OrderHandler", err)
+		return
 	}
 
-	return o.defaultHandler.HandleCommands(message, commands...)
+	o.defaultHandler.HandleCommands(message, commandResults, commands...)
 }
 
 func (o *OrdersHandler) GetHandledEvents() []string {

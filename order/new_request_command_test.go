@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
+	command2 "mc-burger-orders/command"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/shelf"
 	"testing"
@@ -60,13 +61,15 @@ func Test_CreateNewOrder(t *testing.T) {
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
+	commandResults := make(chan command2.TypedResult)
 
 	// when
-	result, err := command.Execute(context.TODO(), kafka.Message{})
+	go command.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.Nil(t, err)
-	assert.True(t, result)
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
@@ -90,7 +93,7 @@ func Test_CreateNewOrder(t *testing.T) {
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
-
+	close(commandResults)
 }
 
 func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
@@ -144,13 +147,16 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
+	commandResults := make(chan command2.TypedResult)
 
 	// when
-	result, err := command.Execute(context.TODO(), kafka.Message{})
+	go command.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.Nil(t, err)
-	assert.True(t, result)
+	commandResult := <-commandResults
+
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
@@ -175,6 +181,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	// and
 	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	close(commandResults)
 }
 
 func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
@@ -206,13 +213,15 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
+	commandResults := make(chan command2.TypedResult)
 
 	// when
-	result, err := command.Execute(context.TODO(), kafka.Message{})
+	go command.Execute(context.Background(), kafka.Message{}, commandResults)
 
 	// then
-	assert.Nil(t, err)
-	assert.True(t, result)
+	commandResult := <-commandResults
+	assert.True(t, commandResult.Result)
+	assert.Nil(t, commandResult.Error)
 
 	// and
 	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
@@ -236,4 +245,5 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 
 	// and
 	assert.Equal(t, 0, stubStatusEmitter.CalledCnt())
+	close(commandResults)
 }

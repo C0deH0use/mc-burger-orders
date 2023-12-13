@@ -22,6 +22,7 @@ func main() {
 
 	shelfTopicConfigs := shelf.TopicConfigsFromEnv()
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
+	orderStatusEndpointsTopicConfigs := order.StatusUpdatedEndpointTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
 	ordersShelf.ConfigureWriter(event.NewTopicWriter(shelfTopicConfigs))
@@ -50,8 +51,10 @@ func main() {
 	eventBus.AddHandler(kitchenEventsHandler)
 
 	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
+	statusUpdatesEndpoints := order.NewOrderStatusEventsEndpoints(mongoDb, orderStatusEndpointsTopicConfigs)
 
 	orderEndpoints.Setup(r)
+	statusUpdatesEndpoints.Setup(r)
 
 	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))

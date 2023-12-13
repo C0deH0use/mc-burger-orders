@@ -28,7 +28,7 @@ type FetchManyRepository interface {
 }
 
 type StoreRepository interface {
-	InsertOrUpdate(ctx context.Context, order Order) (*Order, error)
+	InsertOrUpdate(ctx context.Context, order *Order) (*Order, error)
 }
 
 type OrderRepository interface {
@@ -53,7 +53,7 @@ func NewRepository(database *mongo.Database) *OrderRepositoryImpl {
 	return &OrderRepositoryImpl{c: collection}
 }
 
-func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
+func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order *Order) (*Order, error) {
 	order.ModifiedAt = time.Now()
 	log.Info.Printf("Updating existing Order Number: %v", order.OrderNumber)
 	filterDef := bson.D{{Key: "orderNumber", Value: order.OrderNumber}}

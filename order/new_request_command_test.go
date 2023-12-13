@@ -44,14 +44,6 @@ func Test_CreateNewOrder(t *testing.T) {
 	stubKitchenService := NewOrderService()
 	stubStatusEmitter := NewOrderService()
 	stubRepository := GivenRepository()
-	expectedOrder := &Order{
-		OrderNumber: expectedOrderNumber,
-		CustomerId:  10,
-		Status:      Requested,
-		Items:       newOrder.Items,
-		PackedItems: []i.Item{},
-	}
-	stubRepository.ReturnOrders(expectedOrder)
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
@@ -91,7 +83,8 @@ func Test_CreateNewOrder(t *testing.T) {
 	assert.Empty(t, stubKitchenService.CalledCnt())
 
 	// and
-	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
+	assert.Equal(t, 2, stubStatusEmitter.CalledCnt())
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
 }
@@ -179,7 +172,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1)))
 
 	// and
-	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
+	assert.Equal(t, 2, stubStatusEmitter.CalledCnt())
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
@@ -244,6 +238,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1)))
 
 	// and
-	assert.Equal(t, 0, stubStatusEmitter.CalledCnt())
+	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	close(commandResults)
 }

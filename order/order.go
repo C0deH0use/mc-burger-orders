@@ -19,9 +19,9 @@ type Order struct {
 	ModifiedAt  time.Time           `json:"modifiedAt" bson:"modifiedAt"`
 }
 
-func CreateNewOrder(number int64, order NewOrder) Order {
+func CreateNewOrder(number int64, order NewOrder) *Order {
 	objectID := primitive.NewObjectID()
-	return Order{Id: &objectID, OrderNumber: number, CustomerId: order.CustomerId, Items: order.Items, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()}
+	return &Order{Id: &objectID, OrderNumber: number, CustomerId: order.CustomerId, Items: order.Items, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()}
 }
 
 func (o *Order) PackItem(name string, quantity int) bool {

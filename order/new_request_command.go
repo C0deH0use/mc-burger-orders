@@ -19,9 +19,14 @@ type NewRequestCommand struct {
 	NewOrder       NewOrder
 }
 
-func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message, commandResults chan command.TypedResult) {
-	orderRecord := CreateNewOrder(c.OrderNumber, c.NewOrder)
+func (c *NewRequestCommand) Execute(ctx context.Context, _ kafka.Message, commandResults chan command.TypedResult) {
+	orderRecord, err := c.Repository.InsertOrUpdate(ctx, CreateNewOrder(c.OrderNumber, c.NewOrder))
+	if err != nil {
+		commandResults <- command.NewErrorResult("NewRequestCommand", err)
+		return
+	}
 
+	c.StatusEmitter.EmitStatusUpdatedEvent(orderRecord)
 	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)
 	statusUpdated := false
 	for _, item := range c.NewOrder.Items {
@@ -37,7 +42,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context, message kafka.Message, 
 				statusUpdated = sUpdated
 			}
 		} else {
-			sUpdated, err := c.handlePreparationItems(ctx, item, &orderRecord)
+			sUpdated, err := c.handlePreparationItems(ctx, item, orderRecord)
 			if err != nil {
 				commandResults <- command.NewErrorResult("NewRequestCommand", err)
 				return

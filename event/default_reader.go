@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/command"
 	"mc-burger-orders/log"
@@ -31,15 +32,26 @@ func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultRead
 	configuration.CreateTopic(conn)
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:   configuration.Brokers,
-		Topic:     configuration.Topic,
-		Partition: 0,
-		MinBytes:  10e3, // 10KB
-		MaxBytes:  10e6, // 10MB
-		MaxWait:   configuration.WaitMaxTime,
-		GroupID:   configuration.Topic,
+		Brokers:  configuration.Brokers,
+		Topic:    configuration.Topic,
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
+		MaxWait:  configuration.WaitMaxTime,
+		GroupID:  groupID(configuration),
 	})
 	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
+}
+
+func (r *DefaultReader) GroupId() string {
+	return groupID(r.configuration)
+}
+
+func groupID(configuration *TopicConfigs) string {
+	return fmt.Sprintf("%v-%d", configuration.Topic, configuration.Partition)
+}
+
+func (r *DefaultReader) TopicName() string {
+	return r.configuration.Topic
 }
 
 func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
@@ -61,6 +73,10 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 	}()
 }
 
+func (r *DefaultReader) Close() error {
+	return r.Reader.Close()
+}
+
 func (r *DefaultReader) PublishEvent(message kafka.Message) {
 	// TODO: is Message Already Ran
 	commandResults := make(chan command.TypedResult)
@@ -79,7 +95,7 @@ func (r *DefaultReader) PublishEvent(message kafka.Message) {
 func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan kafka.Message) {
 	msg, err := r.ReadMessage(ctx)
 	if err != nil {
-		log.Error.Println("failed to read message from topic:", r.configuration.Topic, err)
+		log.Error.Println("failed to read message from topic:", r.configuration.Topic, "GroupID", r.GroupId(), err)
 		return
 	}
 	eventType, err := utils.GetEventType(msg)

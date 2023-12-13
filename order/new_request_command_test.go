@@ -64,8 +64,8 @@ func Test_CreateNewOrder(t *testing.T) {
 	assert.Nil(t, commandResult.Error)
 
 	// and
-	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
-	updateOrderArg := stubRepository.GetUpsertArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 2)
+	updateOrderArg := stubRepository.GetUpsertArgs()[1]
 
 	assert.Equal(t, expectedOrderNumber, updateOrderArg.OrderNumber)
 	assert.Equal(t, 10, updateOrderArg.CustomerId)
@@ -152,8 +152,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Nil(t, commandResult.Error)
 
 	// and
-	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
-	order := stubRepository.GetUpsertArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 2)
+	order := stubRepository.GetUpsertArgs()[1]
 
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)
@@ -218,8 +218,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Nil(t, commandResult.Error)
 
 	// and
-	assert.Len(t, stubRepository.GetUpsertArgs(), 1)
-	order := stubRepository.GetUpsertArgs()[0]
+	assert.Len(t, stubRepository.GetUpsertArgs(), 2)
+	order := stubRepository.GetUpsertArgs()[1]
 
 	// and
 	assert.Equal(t, expectedOrderNumber, order.OrderNumber)

@@ -39,7 +39,7 @@ func (s *StubRepository) ReturnError(error error) {
 }
 
 func (s *StubRepository) InsertOrUpdate(ctx context.Context, order *Order) (*Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": order})
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": *order})
 
 	if s.insertOrUpdate != nil {
 		return s.insertOrUpdate, nil

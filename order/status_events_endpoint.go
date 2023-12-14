@@ -59,6 +59,8 @@ func (e *StatusEventsEndpoints) orderStatusHandler(c *gin.Context) {
 		c.Writer.Flush()
 	}
 
+	log.Warning.Println("Closed chan")
+
 	defer func() {
 		_ = e.statusReader.Close()
 		close(topicChan)

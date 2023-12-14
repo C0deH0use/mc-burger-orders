@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,8 +11,8 @@ import (
 	"mc-burger-orders/kitchen/item"
 	"mc-burger-orders/testing/utils"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -36,7 +37,6 @@ func TestIntegrationOrderStatus_HttpEndpoints(t *testing.T) {
 
 func shouldGetOrderUpdatesWhenOrderChanges(t *testing.T) {
 	// given
-	orderStatusChannel := make(chan kafka.Message)
 	expectedOrders := []interface{}{
 		Order{OrderNumber: 1000, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
@@ -45,33 +45,57 @@ func shouldGetOrderUpdatesWhenOrderChanges(t *testing.T) {
 
 	endpoints := NewOrderStatusEventsEndpoints(database, orderStatusKafkaConfig)
 	engine := utils.SetUpRouter(endpoints.Setup)
+	go runEngine(engine, t)
 
-	req, _ := http.NewRequest("GET", "/order/status", nil)
-	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "http://localhost:8080/order/status", nil)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Connection", "keep-alive")
 
 	sendStatusUpdateMessages(t, InProgress)
 	sendStatusUpdateMessages(t, Ready)
 
 	// when
-	engine.ServeHTTP(resp, req)
-
-	// then
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	// and
-	var payload map[string]interface{}
-	err := json.Unmarshal(resp.Body.Bytes(), &payload)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
-		assert.Fail(t, "Error while unmarshalling response payload to map", err)
+		assert.Fail(t, err.Error())
+		return
 	}
 
-	actualOrderNumber := payload["orderNumber"]
-	actualStatus := payload["status"]
+	// then
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	assert.Equal(t, "1000", actualOrderNumber)
-	assert.Equal(t, InProgress, actualStatus)
+	// and
+	actualResponses := make([]map[string]interface{}, 0)
+	for {
+		body := make([]byte, 80)
+		var payload map[string]interface{}
+		_, err := resp.Body.Read(body)
+		if err != nil {
+			assert.Fail(t, "Error while ready bytes from response", err)
+		}
 
-	defer close(orderStatusChannel)
+		bodyStr := string(body)
+		bodyStr = strings.Replace(bodyStr, "event:order-status\ndata:", "", 1)
+		bodyStr = strings.SplitAfter(bodyStr, "}")[0]
+		err = json.Unmarshal([]byte(bodyStr), &payload)
+		if err != nil {
+			assert.Fail(t, "Error while unmarshalling response payload to map", err)
+		}
+		actualResponses = append(actualResponses, payload)
+
+		if len(actualResponses) >= 2 {
+			break
+		}
+	}
+
+	assert.Equal(t, float64(1000), actualResponses[0]["orderNumber"])
+	assert.Equal(t, float64(1000), actualResponses[1]["orderNumber"])
+
+	assert.Equal(t, "IN_PROGRESS", actualResponses[0]["status"])
+	assert.Equal(t, "READY", actualResponses[1]["status"])
 }
 
 func sendStatusUpdateMessages(t *testing.T, status OrderStatus) {
@@ -98,5 +122,13 @@ func sendStatusUpdateMessages(t *testing.T, status OrderStatus) {
 	err := writer.SendMessage(context.Background(), msg)
 	if err != nil {
 		assert.Fail(t, "failed to send message to topic", stackKafkaConfig.Topic)
+	}
+}
+
+func runEngine(engine *gin.Engine, t *testing.T) {
+	err := engine.Run()
+	if err != nil {
+		assert.Fail(t, err.Error())
+		return
 	}
 }

@@ -12,6 +12,7 @@ type TopicConfigs struct {
 	Brokers               []string
 	Topic                 string
 	NumPartitions         int
+	Partition             int
 	ReplicationFactor     int
 	WaitMaxTime           time.Duration
 	AwaitBetweenReadsTime time.Duration

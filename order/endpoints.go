@@ -82,12 +82,8 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	commandResult := <-commandResults
 
 	if commandResult.Error != nil {
-		log.Error.Println(err)
-		c.JSON(http.StatusBadRequest, utils.ErrorPayload(err.Error()))
-		return
-	}
-	if !commandResult.Result {
-		c.JSON(http.StatusBadRequest, utils.ErrorPayload("Failed to Create new order"))
+		log.Error.Println(commandResult.Error.Error())
+		c.JSON(http.StatusBadRequest, utils.ErrorPayload(commandResult.Error.Error()))
 		return
 	}
 

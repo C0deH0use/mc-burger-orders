@@ -18,6 +18,7 @@ func NewSuccessfulResult(typeName string) TypedResult {
 	return TypedResult{
 		Result: true,
 		Type:   typeName,
+		Error:  nil,
 	}
 }
 
@@ -25,5 +26,6 @@ func NewFailedResult(typeName string) TypedResult {
 	return TypedResult{
 		Result: false,
 		Type:   typeName,
+		Error:  nil,
 	}
 }

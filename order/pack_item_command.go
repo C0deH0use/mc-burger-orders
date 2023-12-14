@@ -70,7 +70,7 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message, co
 			}
 
 			statusUpdated := order.PackItem(itemUpdate.ItemName, orderQuantity)
-			_, err = p.Repository.InsertOrUpdate(ctx, *order)
+			_, err = p.Repository.InsertOrUpdate(ctx, order)
 			if err != nil {
 				log.Error.Printf("failed to update order `%d`, reason: %v", order.OrderNumber, err)
 				commandResults <- command.NewErrorResult("PackItemCommand", err)

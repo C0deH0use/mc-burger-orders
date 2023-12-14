@@ -203,7 +203,6 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 }
 
 func ReadMessages(t *testing.T) []*s.KitchenRequestMessage {
-
 	retries := 2
 	messages := make([]kafka.Message, 0)
 	actualMessages := make([]*s.KitchenRequestMessage, 0)

@@ -1,0 +1,74 @@
+###
+POST localhost:9090/order
+Content-Type: application/json
+
+{
+  "customerId": 1011,
+  "items": [
+    {
+      "name": "hamburger",
+      "quantity": 9
+    },
+    {
+      "name": "cheeseburger",
+      "quantity": 5
+    },
+    {
+      "name": "spicy-stripes",
+      "quantity": 25
+    },
+    {
+      "name": "coke",
+      "quantity": 1
+    },
+    {
+      "name": "fries",
+      "quantity": 1
+    }
+  ]
+}
+
+###
+POST localhost:9090/order
+Content-Type: application/json
+
+{
+  "customerId": 1012,
+  "items": [
+    {
+      "name": "hamburger",
+      "quantity": 9
+    },
+    {
+      "name": "cheeseburger",
+      "quantity": 5
+    },
+    {
+      "name": "mc-spicy",
+      "quantity": 12
+    },
+    {
+      "name": "spicy-stripes",
+      "quantity": 10
+    }
+  ]
+}
+
+
+###
+POST localhost:9090/order
+Content-Type: application/json
+
+{
+  "customerId": 1010,
+  "items": [
+    {
+      "name": "hamburger",
+      "quantity": 5
+    },
+    {
+      "name": "fries",
+      "quantity": 2
+    }
+  ]
+}

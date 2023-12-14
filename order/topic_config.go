@@ -9,7 +9,25 @@ import (
 	"time"
 )
 
+func StatusUpdatedEndpointTopicConfigsFromEnv() *event.TopicConfigs {
+	partition := 3
+	partitionsVal := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_ENDPOINT_PARTITION")
+	if len(partitionsVal) > 0 {
+		partition = cast.ToInt(partitionsVal)
+	}
+	return defaultTopicConfig(partition)
+}
+
 func StatusUpdatedTopicConfigsFromEnv() *event.TopicConfigs {
+	partition := 0
+	partitionsVal := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_PARTITION")
+	if len(partitionsVal) > 0 {
+		partition = cast.ToInt(partitionsVal)
+	}
+	return defaultTopicConfig(partition)
+}
+
+func defaultTopicConfig(partition int) *event.TopicConfigs {
 	kafkaAddressEnvVal := os.Getenv("KAFKA_ADDRESS")
 	kafkaAddress := strings.Split(kafkaAddressEnvVal, ",")
 	topic := os.Getenv("KAFKA_TOPICS__ORDER_STATUS_TOPIC_NAME")
@@ -33,6 +51,7 @@ func StatusUpdatedTopicConfigsFromEnv() *event.TopicConfigs {
 		Brokers:               kafkaAddress,
 		Topic:                 topic,
 		NumPartitions:         numPartitions,
+		Partition:             partition,
 		ReplicationFactor:     replicationFactor,
 		WaitMaxTime:           2 * time.Second,
 		AwaitBetweenReadsTime: 500 * time.Millisecond,

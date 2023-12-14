@@ -21,6 +21,12 @@ func (o *OrderUpdatedCommand) Execute(ctx context.Context, message kafka.Message
 		commandResults <- command.NewErrorResult("OrderUpdatedCommand", err)
 		return
 	}
+	_, err := o.Repository.FetchByOrderNumber(ctx, o.OrderNumber)
+	if err != nil {
+		err := fmt.Errorf("failed to find order by order number in payload: %v", o.OrderNumber)
+		commandResults <- command.NewErrorResult("OrderUpdatedCommand", err)
+		return
+	}
 
 	status, exists := payloadBody["status"]
 	if !exists {

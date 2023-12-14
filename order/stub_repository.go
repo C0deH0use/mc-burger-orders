@@ -38,13 +38,13 @@ func (s *StubRepository) ReturnError(error error) {
 	s.err = error
 }
 
-func (s *StubRepository) InsertOrUpdate(ctx context.Context, order Order) (*Order, error) {
-	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": order})
+func (s *StubRepository) InsertOrUpdate(ctx context.Context, order *Order) (*Order, error) {
+	s.methodCalled = append(s.methodCalled, map[string]interface{}{"InsertOrUpdate": *order})
 
 	if s.insertOrUpdate != nil {
 		return s.insertOrUpdate, nil
 	}
-	return &order, s.err
+	return order, s.err
 }
 
 func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*Order, error) {

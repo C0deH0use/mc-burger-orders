@@ -164,7 +164,7 @@ func (r *OrderRepositoryImpl) FetchByMissingItem(ctx context.Context, itemName s
 	}
 
 	dbRecords := make([]*Order, 0)
-	if err = cursor.All(context.TODO(), &dbRecords); err != nil {
+	if err = cursor.All(ctx, &dbRecords); err != nil {
 		log.Error.Println("Error reading cursor data", err)
 		return nil, err
 	}

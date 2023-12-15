@@ -3,7 +3,10 @@ package event
 import (
 	"fmt"
 	"github.com/segmentio/kafka-go"
+	"github.com/spf13/cast"
 	"mc-burger-orders/log"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -17,6 +20,31 @@ type TopicConfigs struct {
 	WaitMaxTime           time.Duration
 	AwaitBetweenReadsTime time.Duration
 	AutoCreateTopic       bool
+}
+
+func NewTopicConfig(topic string, partition int, numPartitionsVal string, replicationFactorVal string) *TopicConfigs {
+	kafkaAddressEnvVal := os.Getenv("KAFKA_ADDRESS")
+	kafkaAddress := strings.Split(kafkaAddressEnvVal, ",")
+
+	numPartitions := 3
+	replicationFactor := 1
+
+	if len(numPartitionsVal) > 0 {
+		numPartitions = cast.ToInt(numPartitionsVal)
+	}
+	if len(replicationFactorVal) > 0 {
+		replicationFactor = cast.ToInt(replicationFactorVal)
+	}
+
+	return &TopicConfigs{
+		Brokers:               kafkaAddress,
+		Topic:                 topic,
+		NumPartitions:         numPartitions,
+		Partition:             partition,
+		ReplicationFactor:     replicationFactor,
+		WaitMaxTime:           2 * time.Second,
+		AwaitBetweenReadsTime: 500 * time.Millisecond,
+	}
 }
 
 func (c *TopicConfigs) ConnectToBroker() *kafka.Conn {

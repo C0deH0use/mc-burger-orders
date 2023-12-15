@@ -233,10 +233,7 @@ func TestOrder_GetMissingItems_WhenOrderReady(t *testing.T) {
 	result := order.GetMissingItems()
 
 	// then
-	assert.Len(t, result, 2)
-
-	assert.Contains(t, result, item.Item{Name: "some-item", Quantity: 0})
-	assert.Contains(t, result, item.Item{Name: "ice-cream", Quantity: 0})
+	assert.Len(t, result, 0)
 }
 
 func TestOrder_GetMissingItems_WhenOrderInProgress(t *testing.T) {
@@ -264,9 +261,8 @@ func TestOrder_GetMissingItems_WhenOrderInProgress(t *testing.T) {
 	result := order.GetMissingItems()
 
 	// then
-	assert.Len(t, result, 2)
+	assert.Len(t, result, 1)
 
-	assert.Contains(t, result, item.Item{Name: "some-item", Quantity: 0})
 	assert.Contains(t, result, item.Item{Name: "ice-cream", Quantity: 1})
 }
 

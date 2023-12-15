@@ -1,22 +1,21 @@
-package schedule
+package management
 
 import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
-	"mc-burger-orders/shelf"
 	utils2 "mc-burger-orders/utils"
 	"strconv"
 	"time"
 )
 
-func ShelfJobs() {
-	topicConfigs := shelf.TopicConfigsFromEnv()
+func OrderManagementJobs() {
+	topicConfigs := OrderJobsTopicConfigsFromEnv()
 	writer := event.NewTopicWriter(topicConfigs)
 	for {
 		go func() {
-			msg := CheckFavoritesOnShelfMessage()
+			msg := CheckOrdersMissingItemsMessage()
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			err := writer.SendMessage(ctx, msg)
 			if err != nil {
@@ -29,9 +28,9 @@ func ShelfJobs() {
 	}
 }
 
-func CheckFavoritesOnShelfMessage() kafka.Message {
+func CheckOrdersMissingItemsMessage() kafka.Message {
 	headers := make([]kafka.Header, 0)
-	headers = append(headers, utils2.EventTypeHeader(shelf.CheckFavoritesOnShelfEvent))
+	headers = append(headers, utils2.EventTypeHeader(CheckMissingItemsOnOrdersEvent))
 	msgKey := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	return kafka.Message{

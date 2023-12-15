@@ -47,7 +47,7 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,
@@ -134,7 +134,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,
@@ -201,7 +201,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,

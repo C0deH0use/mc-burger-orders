@@ -44,7 +44,7 @@ func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.Topi
 
 func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order NewOrder) command.Command {
 	return &NewRequestCommand{
-		Stack:          e.stack,
+		Shelf:          e.stack,
 		Repository:     e.orderRepository,
 		KitchenService: e.kitchenService,
 		StatusEmitter:  e.statusEmitter,

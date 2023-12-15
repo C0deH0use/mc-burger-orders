@@ -73,21 +73,21 @@ func (s *Shelf) GetCurrent(item string) int {
 	return 0
 }
 
-func (s *Shelf) Take(item string, quantity int) error {
+func (s *Shelf) Take(item string, quantity int) (bool, int, error) {
 	if value, ok := s.data.Load(item); ok {
 		exists := cast.ToInt(value)
 		if exists < quantity {
-			err := fmt.Errorf("not enought in Shelf of type %quantity. Requered %d, but only %d available", item, exists, quantity)
-			return err
+			s.data.Store(item, 0)
+			return false, exists, nil
 		}
 
 		newVal := exists - quantity
 		s.data.Store(item, newVal)
 		log.Warning.Printf("Kitchen Shelf | %v - %d => %d", item, quantity, newVal)
-		return nil
+		return true, quantity, nil
 	}
 	err := fmt.Errorf("unknown item `%v` requested", item)
-	return err
+	return false, 0, err
 }
 
 func (s *Shelf) SendUpdateEvent(item string, quantity int) {

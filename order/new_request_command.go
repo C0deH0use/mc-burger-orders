@@ -12,7 +12,7 @@ import (
 
 type NewRequestCommand struct {
 	Repository     OrderRepository
-	Stack          *shelf.Shelf
+	Shelf          *shelf.Shelf
 	KitchenService KitchenRequestService
 	StatusEmitter  StatusEmitter
 	OrderNumber    int64
@@ -70,7 +70,7 @@ func (c *NewRequestCommand) Execute(ctx context.Context, _ kafka.Message, comman
 
 func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item item2.Item, orderRecord *Order) (statusUpdated bool, err error) {
 	log.Info.Println("Item", item, "needs to be prepared first. Checking shelf if one in available.")
-	amountInStock := c.Stack.GetCurrent(item.Name)
+	amountInStock := c.Shelf.GetCurrent(item.Name)
 	if amountInStock == 0 {
 		log.Info.Printf("Sending Request to kitchen for %d new %v", item.Quantity, item.Name)
 		err = c.KitchenService.RequestNew(ctx, item.Name, item.Quantity)
@@ -93,10 +93,17 @@ func (c *NewRequestCommand) handlePreparationItems(ctx context.Context, item ite
 				return statusUpdated, err
 			}
 		}
-		err = c.Stack.Take(item.Name, itemTaken)
+
+		succeeded, taken, err := c.Shelf.Take(item.Name, itemTaken)
+		if !succeeded {
+			remaining := itemTaken - taken
+
+			log.Info.Printf("Sending Request to kitchen for %d new %v", remaining, item.Name)
+			err = c.KitchenService.RequestNew(ctx, item.Name, remaining)
+		}
 
 		if err != nil {
-			err = fmt.Errorf("error when collecting '%d' item(s) '%s' from shelf", item.Quantity, item.Name)
+			err = fmt.Errorf("error when collecting '%d' item(s) '%s' from shelf. Reason: %v", item.Quantity, item.Name, err)
 			return statusUpdated, err
 		}
 

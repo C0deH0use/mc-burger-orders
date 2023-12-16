@@ -44,6 +44,9 @@ func TestIntegrationOrder_HttpEndpoints(t *testing.T) {
 
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
+
+	time.Sleep(time.Second * 5)
+
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
 	t.Run("should store and begin packing order when received valid request", shouldBeginPackingAndStoreOrderWhenRequested)
 

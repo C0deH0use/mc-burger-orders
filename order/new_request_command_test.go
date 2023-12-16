@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
-	command2 "mc-burger-orders/command"
+	cmd "mc-burger-orders/command"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/shelf"
 	"testing"
@@ -47,13 +47,13 @@ func Test_CreateNewOrder(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
-	commandResults := make(chan command2.TypedResult)
+	commandResults := make(chan cmd.TypedResult)
 
 	// when
 	go command.Execute(context.Background(), kafka.Message{}, commandResults)
@@ -134,13 +134,13 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
-	commandResults := make(chan command2.TypedResult)
+	commandResults := make(chan cmd.TypedResult)
 
 	// when
 	go command.Execute(context.Background(), kafka.Message{}, commandResults)
@@ -201,13 +201,13 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
-		Stack:          s,
+		Shelf:          s,
 		KitchenService: stubKitchenService,
 		StatusEmitter:  stubStatusEmitter,
 		OrderNumber:    expectedOrderNumber,
 		NewOrder:       newOrder,
 	}
-	commandResults := make(chan command2.TypedResult)
+	commandResults := make(chan cmd.TypedResult)
 
 	// when
 	go command.Execute(context.Background(), kafka.Message{}, commandResults)

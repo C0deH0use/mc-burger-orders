@@ -7,6 +7,7 @@ import (
 	"mc-burger-orders/kitchen"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
+	"mc-burger-orders/order/management"
 	"mc-burger-orders/schedule"
 	"mc-burger-orders/shelf"
 	sh "mc-burger-orders/shelf/handler"
@@ -22,6 +23,7 @@ func main() {
 
 	shelfTopicConfigs := shelf.TopicConfigsFromEnv()
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
+	orderManagementJobsTopicConfigs := management.OrderJobsTopicConfigsFromEnv()
 	orderStatusEndpointsTopicConfigs := order.StatusUpdatedEndpointTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
@@ -29,11 +31,14 @@ func main() {
 	shelfHandlerTopicConfig := sh.TopicConfigsFromEnv()
 	shelfHandler := sh.NewShelfHandler(kitchenTopicConfigs, ordersShelf)
 
-	stackTopicReader := event.NewTopicReader(shelfTopicConfigs, eventBus)
+	orderJobsReader := event.NewTopicReader(orderManagementJobsTopicConfigs, eventBus)
 	orderStatusReader := event.NewTopicReader(orderStatusTopicConfigs, eventBus)
+
+	stackTopicReader := event.NewTopicReader(shelfTopicConfigs, eventBus)
 	shelfSchedulerReader := event.NewTopicReader(shelfHandlerTopicConfig, eventBus)
 
 	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
+	orderManagementCommandsHandler := management.NewHandler(mongoDb, kitchenTopicConfigs)
 
 	kitchenTopicReader := event.NewTopicReader(kitchenTopicConfigs, eventBus)
 	kitchenEventsHandler := kitchen.NewHandler(ordersShelf)
@@ -49,6 +54,7 @@ func main() {
 	eventBus.AddHandler(shelfHandler)
 	eventBus.AddHandler(orderCommandsHandler)
 	eventBus.AddHandler(kitchenEventsHandler)
+	eventBus.AddHandler(orderManagementCommandsHandler)
 
 	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
 	statusUpdatesEndpoints := order.NewOrderStatusEventsEndpoints(mongoDb, orderStatusEndpointsTopicConfigs)
@@ -59,8 +65,10 @@ func main() {
 	go stackTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go kitchenTopicReader.SubscribeToTopic(make(chan kafka.Message))
 	go orderStatusReader.SubscribeToTopic(make(chan kafka.Message))
+	go orderJobsReader.SubscribeToTopic(make(chan kafka.Message))
 	go shelfSchedulerReader.SubscribeToTopic(make(chan kafka.Message))
 	go schedule.ShelfJobs()
+	go management.OrderManagementJobs()
 
 	err = r.Run()
 

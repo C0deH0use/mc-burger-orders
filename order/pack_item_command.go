@@ -63,7 +63,14 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message, co
 				orderQuantity = current
 			}
 
-			err = p.Shelf.Take(itemUpdate.ItemName, orderQuantity)
+			succeeded, taken, err := p.Shelf.Take(itemUpdate.ItemName, orderQuantity)
+			if !succeeded {
+				remaining := orderQuantity - taken
+
+				log.Info.Printf("Sending Request to kitchen for %d new %v", remaining, itemUpdate.ItemName)
+				err = p.KitchenService.RequestNew(ctx, itemUpdate.ItemName, remaining)
+			}
+
 			if err != nil {
 				log.Error.Printf("could not take item `%v` in quantity `%d` from Shelf. Reason: %v", itemUpdate.ItemName, itemUpdate.Quantity, err)
 				continue

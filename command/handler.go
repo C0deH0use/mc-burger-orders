@@ -65,13 +65,6 @@ func (o *DefaultCommandHandler) Handle(message kafka.Message, commandResults cha
 	}
 
 	o.HandleCommands(message, commandResults, commands...)
-	//for commandResult := range commandResults {
-	//	if commandResult.Error != nil {
-	//		log.Error.Println("While executing command", commandResult.Type, "following error occurred", commandResult.Error.Error())
-	//	} else {
-	//		log.Info.Println("Command", commandResult.Type, "finished successfully, with result -", commandResult.Result)
-	//	}
-	//}
 }
 
 func (o *DefaultCommandHandler) HandleCommands(message kafka.Message, commandResults chan TypedResult, commands ...Command) {

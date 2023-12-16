@@ -1,4 +1,5 @@
 ###
+# @name= Request First Order
 POST localhost:9090/order
 Content-Type: application/json
 
@@ -28,7 +29,21 @@ Content-Type: application/json
   ]
 }
 
+> {%
+    client.test("Request new order I", () => {
+        client.assert(response.status === 201,
+            `Expected Response Status to be 201, but was ${response.status}`);
+
+        const hasNewOrderNumber = response.body.hasOwnProperty("orderNumber");
+        client.assert(hasNewOrderNumber,
+            `Expected number of new requested order, but is missing`);
+
+        client.global.set("orderNumber1", response.body["orderNumber"]);
+    })
+%}
+
 ###
+# @name= Request Second Order
 POST localhost:9090/order
 Content-Type: application/json
 
@@ -55,7 +70,21 @@ Content-Type: application/json
 }
 
 
+> {%
+    client.test("Request new order I", () => {
+        client.assert(response.status === 201,
+            `Expected Response Status to be 201, but was ${response.status}`);
+
+        const hasNewOrderNumber = response.body.hasOwnProperty("orderNumber");
+        client.assert(hasNewOrderNumber,
+            `Expected number of new requested order, but is missing`);
+
+        client.global.set("orderNumber2", response.body["orderNumber"]);
+    })
+%}
+
 ###
+# @name= Request Theird Order
 POST localhost:9090/order
 Content-Type: application/json
 
@@ -72,3 +101,35 @@ Content-Type: application/json
     }
   ]
 }
+
+> {%
+    client.test("Request new order I", () => {
+        client.assert(response.status === 201,
+            `Expected Response Status to be 201, but was ${response.status}`);
+
+        const hasNewOrderNumber = response.body.hasOwnProperty("orderNumber");
+        client.assert(hasNewOrderNumber,
+            `Expected number of new requested order, but is missing`)
+
+        client.global.set("orderNumber3", response.body["orderNumber"])
+    })
+%}
+
+
+###
+#@name= Collect first order on ready
+< {%
+   import {wait} from "wait-for"
+   wait(10)
+   client.log("Calling Collect on order one " + client.global.get("orderNumber1"))
+%}
+
+POST localhost:9090/order/{{orderNumber1}}/collect
+Content-Type: application/json
+
+> {%
+    client.test("Request new order I", () => {
+        client.assert(response.status === 200,
+            `Expected Response Status to be 200, but was ${response.status}`);
+    })
+%}

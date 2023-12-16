@@ -74,7 +74,9 @@ func (o *Order) GetMissingItems() []item.Item {
 			log.Error.Printf("Order %d has incorrect items configuration, item: `%v` => %v", o.OrderNumber, ii.Name, err.Error())
 			continue
 		}
-		i = append(i, item.Item{Name: ii.Name, Quantity: missingItemsCount})
+		if missingItemsCount > 0 {
+			i = append(i, item.Item{Name: ii.Name, Quantity: missingItemsCount})
+		}
 	}
 	return i
 }

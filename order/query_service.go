@@ -8,7 +8,7 @@ import (
 )
 
 type OrderQueryService struct {
-	OrderNumberRepository FetchNextOrderNumberRepository
+	orderNumberRepository FetchNextOrderNumberRepository
 	Repository            FetchManyRepository
 }
 
@@ -26,7 +26,7 @@ func (s *OrderQueryService) FetchOrders(c *gin.Context) {
 }
 
 func (s *OrderQueryService) GetNextOrderNumber(c *gin.Context) int64 {
-	orderNumber, err := s.OrderNumberRepository.GetNext(c)
+	orderNumber, err := s.orderNumberRepository.GetNext(c)
 
 	if err != nil {
 		log.Error.Println("Failure when Next Order Number from db.", err.Error())

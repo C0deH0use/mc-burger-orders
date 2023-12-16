@@ -44,9 +44,10 @@ func TestIntegrationOrder_HttpEndpoints(t *testing.T) {
 
 	collectionDb = database.Collection("orders")
 	orderNumberCollectionDb = database.Collection("order-numbers")
-	
+
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
 	t.Run("should store and begin packing order when received valid request", shouldBeginPackingAndStoreOrderWhenRequested)
+	t.Run("should collect order when given number is already ready", shouldCollectOrderWhenGivenNumberIsAlreadyReady)
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
@@ -61,6 +62,7 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		Order{OrderNumber: 1002, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Requested, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1010, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Collected, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
@@ -200,6 +202,44 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 			utils.DeleteMany(t, collectionDb, bson.D{})
 			utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
 		}()
+	}
+}
+func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
+	// given
+	orderNumber := int64(12)
+	expectedOrders := []interface{}{
+		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: orderNumber, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+	}
+	utils.DeleteMany(t, collectionDb, bson.D{})
+	utils.InsertMany(t, collectionDb, expectedOrders)
+
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", orderNumber), nil)
+	resp := httptest.NewRecorder()
+
+	repository := NewRepository(database)
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	engine := utils.SetUpRouter(endpoints.Setup)
+
+	// when
+	engine.ServeHTTP(resp, req)
+
+	// then
+	assert.Equal(t, http.StatusNoContent, resp.Code)
+
+	// and
+	if actualOrder, err := repository.FetchByOrderNumber(context.TODO(), orderNumber); err != nil {
+		assert.Equal(t, expectedOrderNumber, actualOrder.OrderNumber)
+		assert.Equal(t, Collected, actualOrder.Status)
+
+		defer func() {
+			utils.DeleteMany(t, collectionDb, bson.D{})
+			utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
+		}()
+	} else {
+		assert.Fail(t, "Failed to read order by number from DB")
 	}
 }
 

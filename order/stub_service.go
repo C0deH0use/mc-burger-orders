@@ -10,7 +10,7 @@ type StubService struct {
 	stubs.DefaultStubService
 }
 
-func NewOrderService() *StubService {
+func NewStubService() *StubService {
 	return &StubService{stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
 }
 
@@ -42,14 +42,6 @@ func (s *StubService) RequestNew(ctx context.Context, itemName string, quantity 
 	s.MethodCalled = append(s.MethodCalled, args)
 	return nil
 }
-
-//func (s *StubService) SendMessage(ctx context.Context, messages ...kafka.Message) error {
-//	args := map[string]interface{}{
-//		"SendMessage": messages,
-//	}
-//	s.MethodCalled = append(s.MethodCalled, args)
-//	return nil
-//}
 
 func (s *StubService) EmitStatusUpdatedEvent(order *Order) {
 	args := map[string]interface{}{

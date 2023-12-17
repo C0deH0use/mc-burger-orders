@@ -57,8 +57,8 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -141,8 +141,8 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -255,8 +255,8 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 		},
 	}
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(existingOrders...)
 
@@ -363,8 +363,8 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		},
 	}
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(existingOrders...)
 
@@ -427,8 +427,8 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 
 	message := givenKafkaMessage(t, messageValue)
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -483,8 +483,8 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	s := shelf.NewEmptyShelf()
 	message := givenKafkaMessage(t, make([]map[string]any, 0))
 
-	kitchenService := NewOrderService()
-	statusEmitter := NewOrderService()
+	kitchenService := NewStubService()
+	statusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -502,7 +502,7 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	// then
 	commandResult := <-commandResults
 	assert.False(t, commandResult.Result)
-	assert.Equal(t, "event message is nil or empty", commandResult.Error.Error())
+	assert.Equal(t, "event message is nil or empty", commandResult.Error.ErrorMessage)
 
 	// and
 	assert.Equal(t, 0, repositoryStub.CalledCnt(), "Order Repository have not been called")

@@ -85,7 +85,7 @@ func (r *DefaultReader) PublishEvent(message kafka.Message) {
 	for commandResult := range commandResults {
 		if commandResult.Error != nil {
 			log.Error.Println("While executing command", commandResult.Type, "following error occurred", commandResult.Error.Error())
-			r.HandleError(commandResult.Error, message)
+			r.HandleError(commandResult.Error.Error(), message)
 		} else {
 			log.Info.Println("Command", commandResult.Type, "finished successfully, with result -", commandResult.Result)
 		}

@@ -1,17 +1,23 @@
 package command
 
+import (
+	"fmt"
+	"net/http"
+)
+
 type TypedResult struct {
 	Result bool
 	Type   string
-	Error  error
+	Error  *HttpError
 }
 
-func NewErrorResult(typeName string, err error) TypedResult {
-	return TypedResult{
-		Result: false,
-		Type:   typeName,
-		Error:  err,
-	}
+type HttpError struct {
+	ErrorMessage string
+	HttpResponse int
+}
+
+func (e *HttpError) Error() error {
+	return fmt.Errorf(e.ErrorMessage)
 }
 
 func NewSuccessfulResult(typeName string) TypedResult {
@@ -22,10 +28,18 @@ func NewSuccessfulResult(typeName string) TypedResult {
 	}
 }
 
-func NewFailedResult(typeName string) TypedResult {
+func NewErrorResult(typeName string, err error) TypedResult {
 	return TypedResult{
 		Result: false,
 		Type:   typeName,
-		Error:  nil,
+		Error:  &HttpError{ErrorMessage: err.Error(), HttpResponse: http.StatusBadRequest},
+	}
+}
+
+func NewHttpErrorResult(typeName string, errMessage string, httpResponse int) TypedResult {
+	return TypedResult{
+		Result: false,
+		Type:   typeName,
+		Error:  &HttpError{ErrorMessage: errMessage, HttpResponse: httpResponse},
 	}
 }

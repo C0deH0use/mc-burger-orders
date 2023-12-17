@@ -48,6 +48,7 @@ func TestIntegrationOrder_HttpEndpoints(t *testing.T) {
 	t.Run("should return orders", shouldFetchOrdersWhenMultipleStored)
 	t.Run("should store and begin packing order when received valid request", shouldBeginPackingAndStoreOrderWhenRequested)
 	t.Run("should collect order when given number is already ready", shouldCollectOrderWhenGivenNumberIsAlreadyReady)
+	t.Run("should return 404 when collecting unknown order", shouldReturn404WhenCollectingUnknownOrder)
 
 	t.Cleanup(func() {
 		t.Log("Running Clean UP code")
@@ -204,18 +205,19 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 		}()
 	}
 }
+
 func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
 	// given
-	orderNumber := int64(12)
+	expectedOrderNumber = int64(1100)
 	expectedOrders := []interface{}{
 		Order{OrderNumber: 1000, CustomerId: 1, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "fries", Quantity: 1}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 		Order{OrderNumber: 1001, CustomerId: 2, Items: []item.Item{{Name: "hamburger", Quantity: 1}, {Name: "cheeseburger", Quantity: 2}}, Status: InProgress, CreatedAt: time.Now(), ModifiedAt: time.Now()},
-		Order{OrderNumber: orderNumber, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
+		Order{OrderNumber: expectedOrderNumber, CustomerId: 3, Items: []item.Item{{Name: "cheeseburger", Quantity: 2}, {Name: "cheeseburger", Quantity: 3}}, Status: Ready, CreatedAt: time.Now(), ModifiedAt: time.Now()},
 	}
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", orderNumber), nil)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", expectedOrderNumber), nil)
 	resp := httptest.NewRecorder()
 
 	repository := NewRepository(database)
@@ -230,7 +232,7 @@ func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.Code)
 
 	// and
-	if actualOrder, err := repository.FetchByOrderNumber(context.TODO(), orderNumber); err != nil {
+	if actualOrder, err := repository.FetchByOrderNumber(context.TODO(), expectedOrderNumber); err == nil {
 		assert.Equal(t, expectedOrderNumber, actualOrder.OrderNumber)
 		assert.Equal(t, Collected, actualOrder.Status)
 
@@ -241,6 +243,34 @@ func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
 	} else {
 		assert.Fail(t, "Failed to read order by number from DB")
 	}
+}
+
+func shouldReturn404WhenCollectingUnknownOrder(t *testing.T) {
+	// given
+	expectedOrderNumber = int64(1100)
+	utils.DeleteMany(t, collectionDb, bson.D{})
+
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", expectedOrderNumber), nil)
+	resp := httptest.NewRecorder()
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	engine := utils.SetUpRouter(endpoints.Setup)
+
+	// when
+	engine.ServeHTTP(resp, req)
+
+	// then
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+
+	// and
+	var payload map[string]interface{}
+	err := json.Unmarshal(resp.Body.Bytes(), &payload)
+	if err != nil {
+		assert.Fail(t, "Error while unmarshalling response payload to map", err)
+	}
+
+	t.Log(payload)
+	assert.Equal(t, "failed to find order by order number. Reason: mongo: no documents in result", payload["errorMessage"])
 }
 
 func ReadMessages(t *testing.T) []*s.KitchenRequestMessage {

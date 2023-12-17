@@ -84,8 +84,8 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	commandResult := <-commandResults
 
 	if commandResult.Error != nil {
-		log.Error.Println(commandResult.Error.Error())
-		c.JSON(http.StatusBadRequest, utils.ErrorPayload(commandResult.Error.Error()))
+		log.Error.Println(commandResult.Error.ErrorMessage)
+		c.JSON(commandResult.Error.HttpResponse, utils.ErrorPayload(commandResult.Error.ErrorMessage))
 		return
 	}
 
@@ -104,14 +104,14 @@ func (e *Endpoints) collectOrderHandler(c *gin.Context) {
 	}
 
 	commandResults := make(chan command.TypedResult)
-	cmd := &OrderCollectedCommand{OrderNumber: orderNumber, Repository: e.orderRepository}
+	cmd := &OrderCollectedCommand{OrderNumber: orderNumber, Repository: e.orderRepository, StatusEmitter: e.statusEmitter}
 	go e.dispatcher.Execute(cmd, kafka.Message{}, commandResults)
 
 	commandResult := <-commandResults
 
 	if commandResult.Error != nil {
-		log.Error.Println(commandResult.Error.Error())
-		c.JSON(http.StatusBadRequest, utils.ErrorPayload(commandResult.Error.Error()))
+		log.Error.Println(commandResult.Error.ErrorMessage)
+		c.JSON(commandResult.Error.HttpResponse, utils.ErrorPayload(commandResult.Error.ErrorMessage))
 		return
 	}
 

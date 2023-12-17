@@ -25,13 +25,13 @@ func (o *OrderCollectedCommand) Execute(ctx context.Context, message kafka.Messa
 	}
 
 	if isNotInRequiredStatus(order.Status) {
-		errMessage := fmt.Sprintf("requested order is yet ready for collection")
+		errMessage := "requested order is yet ready for collection"
 		commandResults <- command.NewHttpErrorResult("OrderCollectedCommand", errMessage, http.StatusPreconditionRequired)
 		return
 	}
 
 	if order.Status == Collected {
-		errMessage := fmt.Sprintf("requested order already is collected")
+		errMessage := "requested order already is collected"
 		commandResults <- command.NewHttpErrorResult("OrderCollectedCommand", errMessage, http.StatusPreconditionFailed)
 		return
 	}

@@ -14,6 +14,7 @@ import (
 	"mc-burger-orders/shelf"
 	"mc-burger-orders/testing/utils"
 	"net/http"
+	"strconv"
 )
 
 type Endpoints struct {
@@ -28,7 +29,7 @@ type Endpoints struct {
 func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *shelf.Shelf) middleware.EndpointsSetup {
 	repository := NewRepository(database)
 	orderNumberRepository := NewOrderNumberRepository(database)
-	queryService := OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository}
+	queryService := OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository}
 	kitchenService := NewKitchenServiceFrom(kitchenTopicConfigs)
 	statusEmitter := NewStatusEmitterFrom(statusEmitterTopicConfigs)
 
@@ -56,6 +57,7 @@ func (e *Endpoints) CreateNewOrderCommand(orderNumber int64, order NewOrder) com
 func (e *Endpoints) Setup(r *gin.Engine) {
 	r.GET("/order", e.queryService.FetchOrders)
 	r.POST("/order", e.newOrderHandler)
+	r.POST("/order/:orderNumber/collect", e.collectOrderHandler)
 }
 
 func (e *Endpoints) newOrderHandler(c *gin.Context) {
@@ -82,12 +84,38 @@ func (e *Endpoints) newOrderHandler(c *gin.Context) {
 	commandResult := <-commandResults
 
 	if commandResult.Error != nil {
-		log.Error.Println(commandResult.Error.Error())
-		c.JSON(http.StatusBadRequest, utils.ErrorPayload(commandResult.Error.Error()))
+		log.Error.Println(commandResult.Error.ErrorMessage)
+		c.JSON(commandResult.Error.HttpResponse, utils.ErrorPayload(commandResult.Error.ErrorMessage))
 		return
 	}
 
 	c.JSON(http.StatusCreated, map[string]int64{"orderNumber": orderNumber})
+}
+
+func (e *Endpoints) collectOrderHandler(c *gin.Context) {
+	param := c.Param("orderNumber")
+	orderNumber, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		log.Error.Println("Unable to parse url parameter to OrderNumber", err.Error())
+
+		errResponse := fmt.Sprintf("unable to parse url parameter to OrderNumber. Reason - %v", err.Error())
+		c.JSON(http.StatusBadRequest, utils.ErrorPayload(errResponse))
+		return
+	}
+
+	commandResults := make(chan command.TypedResult)
+	cmd := &OrderCollectedCommand{OrderNumber: orderNumber, Repository: e.orderRepository, StatusEmitter: e.statusEmitter}
+	go e.dispatcher.Execute(cmd, kafka.Message{}, commandResults)
+
+	commandResult := <-commandResults
+
+	if commandResult.Error != nil {
+		log.Error.Println(commandResult.Error.ErrorMessage)
+		c.JSON(commandResult.Error.HttpResponse, utils.ErrorPayload(commandResult.Error.ErrorMessage))
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
 }
 
 func validate(c NewOrder) error {

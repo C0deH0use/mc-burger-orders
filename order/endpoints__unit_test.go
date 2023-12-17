@@ -78,7 +78,7 @@ func shouldExecuteNewOrderCommand(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
-		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		queryService:   OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{result: true},
 	}
@@ -125,7 +125,7 @@ func shouldReturnBadRequestWhenNoItems(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
-		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		queryService:   OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{},
 	}
@@ -170,7 +170,7 @@ func shouldReturnBadRequestWhenItemsEmpty(t *testing.T) {
 	fakeEndpoints := FakeOrderEndpoints{
 		s:              shelf.NewEmptyShelf(),
 		repository:     repository,
-		queryService:   OrderQueryService{Repository: repository, OrderNumberRepository: orderNumberRepository},
+		queryService:   OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository},
 		kitchenService: &KitchenService{},
 		dispatcher:     &FakeCommandDispatcher{},
 	}

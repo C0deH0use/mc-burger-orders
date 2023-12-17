@@ -41,8 +41,8 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := NewOrderService()
-	stubStatusEmitter := NewOrderService()
+	stubKitchenService := NewStubService()
+	stubStatusEmitter := NewStubService()
 	stubRepository := GivenRepository()
 
 	command := &NewRequestCommand{
@@ -120,8 +120,8 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := NewOrderService()
-	stubStatusEmitter := NewOrderService()
+	stubKitchenService := NewStubService()
+	stubStatusEmitter := NewStubService()
 	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
@@ -195,8 +195,8 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := NewOrderService()
-	stubStatusEmitter := NewOrderService()
+	stubKitchenService := NewStubService()
+	stubStatusEmitter := NewStubService()
 	stubRepository := GivenRepository()
 
 	command := &NewRequestCommand{

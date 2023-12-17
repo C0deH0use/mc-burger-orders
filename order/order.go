@@ -106,7 +106,7 @@ const (
 	Requested  = OrderStatus("REQUESTED")
 	InProgress = OrderStatus("IN_PROGRESS")
 	Ready      = OrderStatus("READY")
-	COLLECTED  = OrderStatus("COLLECTED")
+	Collected  = OrderStatus("COLLECTED")
 )
 
 type OrderStatus string

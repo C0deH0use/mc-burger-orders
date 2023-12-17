@@ -6,20 +6,27 @@ import (
 )
 
 type StubRepository struct {
-	o              []*Order
-	insertOrUpdate *Order
-	fetchById      *Order
-	nextNumber     int64
-	err            error
-	methodCalled   []map[string]interface{}
+	o                  []*Order
+	insertOrUpdate     *Order
+	fetchById          *Order
+	fetchByOrderNumber *Order
+	nextNumber         int64
+	err                error
+	methodCalled       []map[string]interface{}
 }
 
 func GivenRepository() *StubRepository {
-	return &StubRepository{}
+	defaultResp := make([]*Order, 0)
+	defaultResp = append(defaultResp, &Order{})
+	return &StubRepository{o: defaultResp}
 }
 
 func (s *StubRepository) ReturnFetchById(order *Order) {
 	s.fetchById = order
+}
+
+func (s *StubRepository) ReturnFetchByOrderNumber(order *Order) {
+	s.fetchByOrderNumber = order
 }
 
 func (s *StubRepository) ReturnOrders(orders ...*Order) {
@@ -58,6 +65,9 @@ func (s *StubRepository) FetchById(ctx context.Context, id interface{}) (*Order,
 
 func (s *StubRepository) FetchByOrderNumber(ctx context.Context, orderNumber int64) (*Order, error) {
 	s.methodCalled = append(s.methodCalled, map[string]interface{}{"FetchByOrderNumber": orderNumber})
+	if s.fetchByOrderNumber != nil {
+		return s.fetchByOrderNumber, nil
+	}
 	return s.o[0], s.err
 }
 

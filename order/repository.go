@@ -122,14 +122,29 @@ func (r *OrderRepositoryImpl) FetchByOrderNumber(ctx context.Context, orderNumbe
 }
 
 func (r *OrderRepositoryImpl) FetchMany(ctx context.Context) ([]*Order, error) {
-	cursor, err := r.c.Find(ctx, bson.D{})
+	filterDef := bson.D{
+		{
+			Key: "status",
+			Value: bson.D{{
+				Key:   "$in",
+				Value: bson.A{Requested, InProgress, Ready},
+			}},
+		},
+	}
+	findOptions := &options.FindOptions{
+		Sort: bson.D{{
+			Key:   "orderNumber",
+			Value: 1,
+		}},
+	}
+	cursor, err := r.c.Find(ctx, filterDef, findOptions)
 	if err != nil {
 		log.Error.Println("Error when fetching orders from db", err)
 		return nil, err
 	}
 
 	var orders []*Order
-	if err = cursor.All(context.TODO(), &orders); err != nil {
+	if err = cursor.All(ctx, &orders); err != nil {
 		log.Error.Println("Error reading cursor data", err)
 		return nil, err
 	}

@@ -25,6 +25,7 @@ func main() {
 	orderStatusTopicConfigs := order.StatusUpdatedTopicConfigsFromEnv()
 	orderManagementJobsTopicConfigs := management.OrderJobsTopicConfigsFromEnv()
 	orderStatusEndpointsTopicConfigs := order.StatusUpdatedEndpointTopicConfigsFromEnv()
+	orderStreamTopicConfigs := order.StreamTopicConfigsFromEnv()
 	kitchenTopicConfigs := kitchen.TopicConfigsFromEnv()
 
 	ordersShelf.ConfigureWriter(event.NewTopicWriter(shelfTopicConfigs))
@@ -37,7 +38,8 @@ func main() {
 	stackTopicReader := event.NewTopicReader(shelfTopicConfigs, eventBus)
 	shelfSchedulerReader := event.NewTopicReader(shelfHandlerTopicConfig, eventBus)
 
-	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
+	orderStreamService := order.NewOrderStreamService(orderStreamTopicConfigs)
+	orderCommandsHandler := order.NewHandler(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, orderStreamService, ordersShelf)
 	orderManagementCommandsHandler := management.NewHandler(mongoDb, kitchenTopicConfigs)
 
 	kitchenTopicReader := event.NewTopicReader(kitchenTopicConfigs, eventBus)
@@ -56,8 +58,8 @@ func main() {
 	eventBus.AddHandler(kitchenEventsHandler)
 	eventBus.AddHandler(orderManagementCommandsHandler)
 
-	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, ordersShelf)
-	statusUpdatesEndpoints := order.NewOrderStatusEventsEndpoints(mongoDb, orderStatusEndpointsTopicConfigs)
+	orderEndpoints := order.NewOrderEndpoints(mongoDb, kitchenTopicConfigs, orderStatusTopicConfigs, orderStreamService, ordersShelf)
+	statusUpdatesEndpoints := order.NewOrderStatusEventsEndpoints(mongoDb, orderStatusEndpointsTopicConfigs, orderStreamService)
 
 	orderEndpoints.Setup(r)
 	statusUpdatesEndpoints.Setup(r)

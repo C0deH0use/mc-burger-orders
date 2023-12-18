@@ -26,8 +26,8 @@ type StatusEventsEndpoints struct {
 	dispatcher   command.Dispatcher
 }
 
-func NewOrderStatusEventsEndpoints(database *mongo.Database, statusEmitterTopicConfigs *event.TopicConfigs) middleware.EndpointsSetup {
-	repository := NewRepository(database)
+func NewOrderStatusEventsEndpoints(database *mongo.Database, statusEmitterTopicConfigs *event.TopicConfigs, streamService OrderStreamService) middleware.EndpointsSetup {
+	repository := NewRepository(database, streamService)
 	statusReader := event.NewTopicReader(statusEmitterTopicConfigs, nil)
 
 	return &StatusEventsEndpoints{

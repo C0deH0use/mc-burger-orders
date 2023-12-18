@@ -83,7 +83,7 @@ func Test_CreateNewOrder(t *testing.T) {
 	assert.Empty(t, stubKitchenService.CalledCnt())
 
 	// and
-	assert.Equal(t, 2, stubStatusEmitter.CalledCnt())
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
@@ -172,7 +172,7 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1)))
 
 	// and
-	assert.Equal(t, 2, stubStatusEmitter.CalledCnt())
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
@@ -238,7 +238,7 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1)))
 
 	// and
-	assert.Equal(t, 1, stubStatusEmitter.CalledCnt())
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 1)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	close(commandResults)
 }

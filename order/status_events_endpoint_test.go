@@ -42,8 +42,9 @@ func shouldGetOrderUpdatesWhenOrderChanges(t *testing.T) {
 	}
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
+	orderStream := NewStubService()
 
-	endpoints := NewOrderStatusEventsEndpoints(database, orderStatusKafkaConfig)
+	endpoints := NewOrderStatusEventsEndpoints(database, orderStatusKafkaConfig, orderStream)
 	engine := utils.SetUpRouter(endpoints.Setup)
 	go runEngine(engine, t)
 

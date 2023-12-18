@@ -57,8 +57,10 @@ func shouldPackPreparedItemWhenEvenFromStackOccurred(t *testing.T) {
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
+	orderStream := NewStubService()
+
 	eventBus := event.NewInternalEventBus()
-	ordersHandler := NewHandler(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, kitchenStack)
+	ordersHandler := NewHandler(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, orderStream, kitchenStack)
 
 	eventBus.AddHandler(ordersHandler)
 	kitchenStack.Add("fries")

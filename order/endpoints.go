@@ -26,8 +26,8 @@ type Endpoints struct {
 	dispatcher      command.Dispatcher
 }
 
-func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *shelf.Shelf) middleware.EndpointsSetup {
-	repository := NewRepository(database)
+func NewOrderEndpoints(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, streamService OrderStreamService, s *shelf.Shelf) middleware.EndpointsSetup {
+	repository := NewRepository(database, streamService)
 	orderNumberRepository := NewOrderNumberRepository(database)
 	queryService := OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository}
 	kitchenService := NewKitchenServiceFrom(kitchenTopicConfigs)

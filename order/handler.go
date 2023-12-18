@@ -20,8 +20,8 @@ type OrdersHandler struct {
 	kitchenService KitchenRequestService
 }
 
-func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, s *shelf.Shelf) *OrdersHandler {
-	repository := NewRepository(database)
+func NewHandler(database *mongo.Database, kitchenTopicConfigs *event.TopicConfigs, statusEmitterTopicConfigs *event.TopicConfigs, orderStreamService OrderStreamService, s *shelf.Shelf) *OrdersHandler {
+	repository := NewRepository(database, orderStreamService)
 	orderNumberRepository := NewOrderNumberRepository(database)
 	queryService := OrderQueryService{Repository: repository, orderNumberRepository: orderNumberRepository}
 	kitchenService := NewKitchenServiceFrom(kitchenTopicConfigs)

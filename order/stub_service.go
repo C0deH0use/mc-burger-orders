@@ -92,8 +92,8 @@ func (s *StubService) GetEmitUpdatedEventArgs() []*Order {
 
 	for _, o := range s.MethodCalled {
 		if value, eventExist := o["EmitUpdatedEvent"]; eventExist {
-			order := value.(Order)
-			r = append(r, &order)
+			order := value.(*Order)
+			r = append(r, order)
 		}
 	}
 	return r

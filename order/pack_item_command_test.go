@@ -10,6 +10,7 @@ import (
 	"mc-burger-orders/command"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/shelf"
+	"sync"
 	"testing"
 	"time"
 )
@@ -58,7 +59,11 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	message := givenKafkaMessage(t, messageValue)
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(1)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
+
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -66,7 +71,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -108,8 +113,9 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt())
 
 	// and
-	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 1)
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	statusUpdateWg.Wait()
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 1)
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
 
@@ -142,7 +148,12 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	message := givenKafkaMessage(t, messageValue)
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(2)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
+
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -150,7 +161,7 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -199,10 +210,10 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
 
 	// and
-	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 2)
-
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
+	statusUpdateWg.Wait()
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
 }
 
@@ -257,7 +268,12 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	}
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(4)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
+
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(existingOrders...)
 
@@ -265,7 +281,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 	}
 	commandResults := make(chan command.TypedResult)
 
@@ -309,9 +325,10 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt())
 
 	// and
-	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 4)
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
+	statusUpdateWg.Wait()
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 4)
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
 }
 
@@ -365,7 +382,12 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	}
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(2)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
+
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(existingOrders...)
 
@@ -373,7 +395,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 	}
 	commandResults := make(chan command.TypedResult)
 
@@ -409,8 +431,9 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 6)))
 
 	// and
-	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 2)
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	statusUpdateWg.Wait()
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
 
@@ -429,7 +452,10 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	message := givenKafkaMessage(t, messageValue)
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(1)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
@@ -437,7 +463,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 		Shelf:          s,
 		Repository:     repositoryStub,
 		KitchenService: kitchenService,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 	}
 
 	expectedPackedItems := []i.Item{
@@ -474,8 +500,9 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 3)))
 
 	// and
-	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 1)
-	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
+	statusUpdateWg.Wait()
+	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 1)
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
 
@@ -485,14 +512,14 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	message := givenKafkaMessage(t, make([]map[string]any, 0))
 
 	kitchenService := NewStubService()
-	statusEmitter := NewStubService()
+	stubStatusEmitter := NewStubService()
 	repositoryStub := GivenRepository()
 	repositoryStub.ReturnOrders(givenExistingOrder())
 
 	sut := &PackItemCommand{
 		Shelf:          s,
 		Repository:     repositoryStub,
-		StatusEmitter:  statusEmitter,
+		StatusEmitter:  stubStatusEmitter,
 		KitchenService: kitchenService,
 	}
 	commandResults := make(chan command.TypedResult)
@@ -506,14 +533,14 @@ func shouldFailWhenMessageValueIsEmpty(t *testing.T) {
 	assert.Equal(t, "event message is nil or empty", commandResult.Error.ErrorMessage)
 
 	// and
-	assert.Equal(t, 0, repositoryStub.CalledCnt(), "Order Repository have not been called")
-	assert.Len(t, repositoryStub.GetUpsertArgs(), 0)
+	assert.Zero(t, repositoryStub.CalledCnt())
+	assert.Zero(t, repositoryStub.GetUpsertArgs())
 
 	// and
-	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
+	assert.Zero(t, kitchenService.CalledCnt())
 
 	// and
-	assert.Equal(t, 0, statusEmitter.CalledCnt())
+	assert.Empty(t, stubStatusEmitter.GetStatusUpdatedEventArgs())
 	close(commandResults)
 }
 

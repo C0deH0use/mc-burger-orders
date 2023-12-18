@@ -3,7 +3,7 @@ package stubs
 type DefaultStubService struct {
 	ReturnObj    interface{}
 	Err          error
-	MethodCalled []map[string]interface{}
+	MethodCalled []map[string]any
 }
 
 func (s *DefaultStubService) CalledCnt() int {

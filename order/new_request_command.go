@@ -26,7 +26,8 @@ func (c *NewRequestCommand) Execute(ctx context.Context, _ kafka.Message, comman
 		return
 	}
 
-	c.StatusEmitter.EmitStatusUpdatedEvent(orderRecord)
+	log.Warning.Println("Emitting Status Update for", c.OrderNumber, "status =>", orderRecord.Status)
+	go c.StatusEmitter.EmitStatusUpdatedEvent(*orderRecord)
 	log.Info.Printf("New Order with number %v created %+v\n", c.OrderNumber, c.NewOrder)
 	statusUpdated := false
 	for _, item := range c.NewOrder.Items {
@@ -63,7 +64,8 @@ func (c *NewRequestCommand) Execute(ctx context.Context, _ kafka.Message, comman
 		return
 	}
 	if statusUpdated {
-		c.StatusEmitter.EmitStatusUpdatedEvent(result)
+		log.Warning.Println("Emitting Status Update for", c.OrderNumber, "status =>", result.Status)
+		go c.StatusEmitter.EmitStatusUpdatedEvent(*result)
 	}
 	commandResults <- command.NewSuccessfulResult("NewRequestCommand")
 }

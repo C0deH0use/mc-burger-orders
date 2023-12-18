@@ -24,17 +24,17 @@ func RequestMatchingFnc(itemName string, quantity int) func(args map[string]any)
 	return func(args map[string]any) bool {
 		argName := args["itemName"]
 		argQuantity := args["quantity"]
-		log.Printf("StubService methodCalled RequestNew(). %+v", args)
 		b := argName == itemName && argQuantity == quantity
+		log.Printf("StubService methodCalled RequestNew() => %+v", args)
 		return b
 	}
 }
 
 func StatusUpdateMatchingFnc(status OrderStatus) func(args map[string]any) bool {
 	return func(args map[string]any) bool {
-		if statusUpdated, exists := args["StatusUpdatedEvent"]; exists {
-			log.Printf("StubService methodCalled StatusUpdatedEvent(). %+v", args)
-			return statusUpdated == status
+		if updatedStatus, exists := args["StatusUpdatedEvent"]; exists {
+			log.Printf("StubService methodCalled StatusUpdatedEvent() => %+v", updatedStatus)
+			return updatedStatus == status
 		}
 		return false
 	}
@@ -53,19 +53,22 @@ func (s *StubService) RequestNew(ctx context.Context, itemName string, quantity 
 	return nil
 }
 
-func (s *StubService) EmitStatusUpdatedEvent(order *Order) {
+func (s *StubService) EmitStatusUpdatedEvent(o Order) {
+	orderCopy := &o
 	args := map[string]interface{}{
-		"StatusUpdatedEvent": order.Status,
+		"StatusUpdatedEvent": orderCopy.Status,
 	}
 	s.MethodCalled = append(s.MethodCalled, args)
 	if s.wg != nil {
 		s.wg.Done()
 	}
+	log.Printf("StubService.EmitStatusUpdatedEvent() => %+v", args)
 }
 
-func (s *StubService) EmitUpdatedEvent(order *Order) {
+func (s *StubService) EmitUpdatedEvent(o Order) {
+	orderCopy := &o
 	args := map[string]interface{}{
-		"EmitUpdatedEvent": order,
+		"EmitUpdatedEvent": orderCopy,
 	}
 	s.MethodCalled = append(s.MethodCalled, args)
 	if s.wg != nil {
@@ -89,7 +92,8 @@ func (s *StubService) GetEmitUpdatedEventArgs() []*Order {
 
 	for _, o := range s.MethodCalled {
 		if value, eventExist := o["EmitUpdatedEvent"]; eventExist {
-			r = append(r, value.(*Order))
+			order := value.(*Order)
+			r = append(r, order)
 		}
 	}
 	return r

@@ -11,7 +11,7 @@ import (
 )
 
 type StatusEmitter interface {
-	EmitStatusUpdatedEvent(order *Order)
+	EmitStatusUpdatedEvent(order Order)
 }
 
 type StatusEmitterService struct {
@@ -22,7 +22,8 @@ func NewStatusEmitterFrom(topicConfig *event.TopicConfigs) *StatusEmitterService
 	return &StatusEmitterService{OrderTopicConfig: topicConfig}
 }
 
-func (r *StatusEmitterService) EmitStatusUpdatedEvent(order *Order) {
+func (r *StatusEmitterService) EmitStatusUpdatedEvent(o Order) {
+	order := o
 	writer := event.NewTopicWriter(r.OrderTopicConfig)
 
 	headers := make([]kafka.Header, 0)

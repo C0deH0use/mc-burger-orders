@@ -11,7 +11,7 @@ import (
 )
 
 type OrderStreamService interface {
-	EmitUpdatedEvent(order *Order)
+	EmitUpdatedEvent(order Order)
 }
 
 type OrderStreamServiceImpl struct {
@@ -22,7 +22,8 @@ func NewOrderStreamService(topicConfig *event.TopicConfigs) OrderStreamService {
 	return &OrderStreamServiceImpl{OrderTopicConfig: topicConfig}
 }
 
-func (r *OrderStreamServiceImpl) EmitUpdatedEvent(order *Order) {
+func (r *OrderStreamServiceImpl) EmitUpdatedEvent(o Order) {
+	order := &o
 	writer := event.NewTopicWriter(r.OrderTopicConfig)
 
 	headers := make([]kafka.Header, 0)

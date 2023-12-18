@@ -84,7 +84,7 @@ func (p *PackItemCommand) Execute(ctx context.Context, message kafka.Message, co
 				return
 			}
 			if statusUpdated {
-				p.StatusEmitter.EmitStatusUpdatedEvent(order)
+				go p.StatusEmitter.EmitStatusUpdatedEvent(*order)
 			}
 		}
 	}

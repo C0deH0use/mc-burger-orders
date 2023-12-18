@@ -4,14 +4,20 @@ import (
 	"context"
 	"log"
 	"mc-burger-orders/testing/stubs"
+	"sync"
 )
 
 type StubService struct {
+	wg *sync.WaitGroup
 	stubs.DefaultStubService
 }
 
 func NewStubService() *StubService {
-	return &StubService{stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
+	return &StubService{wg: nil, DefaultStubService: stubs.DefaultStubService{MethodCalled: make([]map[string]any, 0)}}
+}
+
+func (s *StubService) WithWaitGroup(group *sync.WaitGroup) {
+	s.wg = group
 }
 
 func RequestMatchingFnc(itemName string, quantity int) func(args map[string]any) bool {
@@ -40,6 +46,10 @@ func (s *StubService) RequestNew(ctx context.Context, itemName string, quantity 
 		"quantity": quantity,
 	}
 	s.MethodCalled = append(s.MethodCalled, args)
+
+	if s.wg != nil {
+		s.wg.Done()
+	}
 	return nil
 }
 
@@ -48,4 +58,39 @@ func (s *StubService) EmitStatusUpdatedEvent(order *Order) {
 		"StatusUpdatedEvent": order.Status,
 	}
 	s.MethodCalled = append(s.MethodCalled, args)
+	if s.wg != nil {
+		s.wg.Done()
+	}
+}
+
+func (s *StubService) EmitUpdatedEvent(order *Order) {
+	args := map[string]interface{}{
+		"EmitUpdatedEvent": order,
+	}
+	s.MethodCalled = append(s.MethodCalled, args)
+	if s.wg != nil {
+		s.wg.Done()
+	}
+}
+
+func (s *StubService) GetStatusUpdatedEventArgs() []OrderStatus {
+	r := make([]OrderStatus, 0)
+
+	for _, o := range s.MethodCalled {
+		if value, eventExist := o["StatusUpdatedEvent"]; eventExist {
+			r = append(r, value.(OrderStatus))
+		}
+	}
+	return r
+}
+
+func (s *StubService) GetEmitUpdatedEventArgs() []*Order {
+	r := make([]*Order, 0)
+
+	for _, o := range s.MethodCalled {
+		if value, eventExist := o["EmitUpdatedEvent"]; eventExist {
+			r = append(r, value.(*Order))
+		}
+	}
+	return r
 }

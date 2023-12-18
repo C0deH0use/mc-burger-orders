@@ -10,29 +10,26 @@ import (
 	"time"
 )
 
-type StatusEmitter interface {
-	EmitStatusUpdatedEvent(order *Order)
+type OrderStreamService interface {
+	EmitUpdatedEvent(order *Order)
 }
 
-type StatusEmitterService struct {
+type OrderStreamServiceImpl struct {
 	OrderTopicConfig *event.TopicConfigs
 }
 
-func NewStatusEmitterFrom(topicConfig *event.TopicConfigs) *StatusEmitterService {
-	return &StatusEmitterService{OrderTopicConfig: topicConfig}
+func NewOrderStreamService(topicConfig *event.TopicConfigs) OrderStreamService {
+	return &OrderStreamServiceImpl{OrderTopicConfig: topicConfig}
 }
 
-func (r *StatusEmitterService) EmitStatusUpdatedEvent(order *Order) {
+func (r *OrderStreamServiceImpl) EmitUpdatedEvent(order *Order) {
 	writer := event.NewTopicWriter(r.OrderTopicConfig)
 
 	headers := make([]kafka.Header, 0)
 	headers = append(headers, utils.OrderHeader(order.OrderNumber))
-	headers = append(headers, utils.EventTypeHeader(StatusUpdatedEvent))
-	payloadBody := map[string]OrderStatus{
-		"status": order.Status,
-	}
+	headers = append(headers, utils.EventTypeHeader(OrderUpdatedEvent))
 
-	if payload, err := json.Marshal(payloadBody); err == nil {
+	if payload, err := json.Marshal(order); err == nil {
 		message := kafka.Message{
 			Headers: headers,
 			Value:   payload,

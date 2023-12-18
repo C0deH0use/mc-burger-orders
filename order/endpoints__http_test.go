@@ -11,7 +11,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"math/rand"
 	"mc-burger-orders/event"
 	"mc-burger-orders/kitchen/item"
@@ -20,6 +19,7 @@ import (
 	"mc-burger-orders/testing/utils"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -68,7 +68,9 @@ func shouldFetchOrdersWhenMultipleStored(t *testing.T) {
 	utils.DeleteMany(t, collectionDb, bson.D{})
 	utils.InsertMany(t, collectionDb, expectedOrders)
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	orderStream := NewStubService()
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, orderStream, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	req, _ := http.NewRequest("GET", "/order", nil)
@@ -144,9 +146,15 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/order", reqBody)
 	resp := httptest.NewRecorder()
 
-	repository := NewRepository(database)
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	orderStream := NewStubService()
+	orderStream.WithWaitGroup(wg)
+
+	repository := NewRepository(database, orderStream)
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, orderStream, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	kitchenRequestsReader = kafka.NewReader(kafka.ReaderConfig{
@@ -178,12 +186,7 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 	assert.Equal(t, expectedOrderNumber, actualOrderNumber)
 
 	// and
-	actualOrder, err := repository.FetchByOrderNumber(context.TODO(), actualOrderNumber)
-	if err != nil {
-		if err != nil {
-			assert.Fail(t, "Failed to read order by number from DB")
-		}
-
+	if actualOrder, err := repository.FetchByOrderNumber(context.TODO(), actualOrderNumber); err == nil {
 		assert.Equal(t, expectedOrderNumber, actualOrder.OrderNumber)
 		assert.Equal(t, 10, actualOrder.CustomerId)
 		assert.Equal(t, InProgress, actualOrder.Status)
@@ -198,12 +201,23 @@ func shouldBeginPackingAndStoreOrderWhenRequested(t *testing.T) {
 		assert.Equal(t, len(expectedMessages), len(actualMessages))
 		assert.Equal(t, expectedMessages, actualMessages)
 
-		defer func() {
-			utils.TerminateKafkaReader(t, kitchenRequestsReader)
-			utils.DeleteMany(t, collectionDb, bson.D{})
-			utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
-		}()
+		wg.Wait()
+		assert.Len(t, orderStream.GetEmitUpdatedEventArgs(), 2)
+
+		assert.Equal(t, expectedOrderNumber, orderStream.GetEmitUpdatedEventArgs()[0].OrderNumber)
+		assert.Equal(t, expectedOrderNumber, orderStream.GetEmitUpdatedEventArgs()[1].OrderNumber)
+
+		assert.Equal(t, Requested, orderStream.GetEmitUpdatedEventArgs()[0].Status)
+		assert.Equal(t, InProgress, orderStream.GetEmitUpdatedEventArgs()[1].Status)
+	} else {
+		assert.Fail(t, "Failed to read order by number from DB")
 	}
+
+	defer func() {
+		utils.TerminateKafkaReader(t, kitchenRequestsReader)
+		utils.DeleteMany(t, collectionDb, bson.D{})
+		utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
+	}()
 }
 
 func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
@@ -220,9 +234,15 @@ func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", expectedOrderNumber), nil)
 	resp := httptest.NewRecorder()
 
-	repository := NewRepository(database)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	orderStream := NewStubService()
+	orderStream.WithWaitGroup(wg)
+
+	repository := NewRepository(database, orderStream)
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, orderStream, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	// when
@@ -236,13 +256,18 @@ func shouldCollectOrderWhenGivenNumberIsAlreadyReady(t *testing.T) {
 		assert.Equal(t, expectedOrderNumber, actualOrder.OrderNumber)
 		assert.Equal(t, Collected, actualOrder.Status)
 
-		defer func() {
-			utils.DeleteMany(t, collectionDb, bson.D{})
-			utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
-		}()
+		wg.Wait()
+		assert.Len(t, orderStream.GetEmitUpdatedEventArgs(), 1)
+		assert.Equal(t, expectedOrderNumber, orderStream.GetEmitUpdatedEventArgs()[0].OrderNumber)
+		assert.Equal(t, Collected, orderStream.GetEmitUpdatedEventArgs()[0].Status)
 	} else {
 		assert.Fail(t, "Failed to read order by number from DB")
 	}
+
+	defer func() {
+		utils.DeleteMany(t, collectionDb, bson.D{})
+		utils.DeleteMany(t, orderNumberCollectionDb, bson.D{})
+	}()
 }
 
 func shouldReturn404WhenCollectingUnknownOrder(t *testing.T) {
@@ -253,7 +278,9 @@ func shouldReturn404WhenCollectingUnknownOrder(t *testing.T) {
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/order/%d/collect", expectedOrderNumber), nil)
 	resp := httptest.NewRecorder()
 
-	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, shelf.NewEmptyShelf())
+	orderStream := NewStubService()
+
+	endpoints := NewOrderEndpoints(database, kitchenRequestsKafkaConfig, orderStatusKafkaConfig, orderStream, shelf.NewEmptyShelf())
 	engine := utils.SetUpRouter(endpoints.Setup)
 
 	// when
@@ -277,16 +304,21 @@ func ReadMessages(t *testing.T) []*s.KitchenRequestMessage {
 	retries := 2
 	messages := make([]kafka.Message, 0)
 	actualMessages := make([]*s.KitchenRequestMessage, 0)
+	ctxTimeout, closeFnc := context.WithTimeout(context.Background(), time.Second*10)
+	defer closeFnc()
 
 	for i := 0; i < 4; i++ {
-		log.Print("Reading messages from test topic", topic)
-		message, err := kitchenRequestsReader.ReadMessage(context.Background())
+		t.Log("Reading messages from test topic", topic)
+		message, err := kitchenRequestsReader.ReadMessage(ctxTimeout)
 
 		if err != nil {
 			if retries > 0 {
-				log.Println("retry reading message from broker....")
+				t.Log("Reading message from broker....", retries, "retries left")
 				retries--
 				continue
+			} else if err.Error() == "fetching message: context deadline exceeded" {
+				t.Log(err)
+				break
 			} else {
 				assert.Fail(t, "failed reading message on test topic", err)
 				return nil
@@ -297,13 +329,16 @@ func ReadMessages(t *testing.T) []*s.KitchenRequestMessage {
 
 	for _, message := range messages {
 		if message.Key != nil {
-			actualMessage := &s.KitchenRequestMessage{}
-			err := json.Unmarshal(message.Value, actualMessage)
+			actualMessage := make([]*s.KitchenRequestMessage, 0)
+			err := json.Unmarshal(message.Value, &actualMessage)
 			if err != nil {
 				assert.Fail(t, "failed to unmarshal message on test topic", err)
 				return nil
 			}
-			actualMessages = append(actualMessages, actualMessage)
+
+			for _, m := range actualMessage {
+				actualMessages = append(actualMessages, m)
+			}
 		}
 	}
 

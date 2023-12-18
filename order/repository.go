@@ -46,11 +46,12 @@ type PackingOrderItemsRepository interface {
 
 type OrderRepositoryImpl struct {
 	c *mongo.Collection
+	s OrderStreamService
 }
 
-func NewRepository(database *mongo.Database) *OrderRepositoryImpl {
+func NewRepository(database *mongo.Database, streamService OrderStreamService) *OrderRepositoryImpl {
 	collection := database.Collection("orders")
-	return &OrderRepositoryImpl{c: collection}
+	return &OrderRepositoryImpl{c: collection, s: streamService}
 }
 
 func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order *Order) (*Order, error) {
@@ -72,6 +73,7 @@ func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order *Order) 
 		err = fmt.Errorf("missing order pk id for the document")
 		return nil, err
 	}
+	go r.s.EmitUpdatedEvent(order)
 
 	var orderId primitive.ObjectID
 	switch {

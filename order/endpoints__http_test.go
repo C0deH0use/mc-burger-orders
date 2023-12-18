@@ -336,9 +336,7 @@ func ReadMessages(t *testing.T) []*s.KitchenRequestMessage {
 				return nil
 			}
 
-			for _, m := range actualMessage {
-				actualMessages = append(actualMessages, m)
-			}
+			actualMessages = append(actualMessages, actualMessage...)
 		}
 	}
 

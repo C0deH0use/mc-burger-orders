@@ -108,7 +108,7 @@ func shouldPackItemPointedInMessage(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt())
 
 	// and
-	assert.Equal(t, 1, statusEmitter.CalledCnt())
+	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 1)
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
@@ -199,7 +199,8 @@ func shouldFinishPackingOrderWhenLastItemsCameFromKitchen(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt(), "No items have not been requested")
 
 	// and
-	assert.Equal(t, 2, statusEmitter.CalledCnt())
+	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 2)
+
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
@@ -308,7 +309,7 @@ func shouldPackMultipleOrdersWhenMultipleItemsAdded(t *testing.T) {
 	assert.Equal(t, 0, kitchenService.CalledCnt())
 
 	// and
-	assert.Equal(t, 4, statusEmitter.CalledCnt())
+	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 4)
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
 	close(commandResults)
@@ -408,7 +409,7 @@ func shouldPackOtherOrdersWhenTheFirstOneIsAlreadyPackedByItem(t *testing.T) {
 	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 6)))
 
 	// and
-	assert.Equal(t, 2, statusEmitter.CalledCnt())
+	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 2)
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }
@@ -473,7 +474,7 @@ func shouldRequestAdditionalItemWhenMoreAreNeeded(t *testing.T) {
 	assert.True(t, kitchenService.HaveBeenCalledWith(RequestMatchingFnc(spicyStripes, 3)))
 
 	// and
-	assert.Equal(t, 1, statusEmitter.CalledCnt())
+	assert.Len(t, statusEmitter.GetStatusUpdatedEventArgs(), 1)
 	assert.True(t, statusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
 	close(commandResults)
 }

@@ -24,7 +24,7 @@ func RequestMatchingFnc(itemName string, quantity int) func(args map[string]any)
 	return func(args map[string]any) bool {
 		argName := args["itemName"]
 		argQuantity := args["quantity"]
-		log.Printf("StubService methodCalled. %+v", args)
+		log.Printf("StubService methodCalled RequestNew(). %+v", args)
 		b := argName == itemName && argQuantity == quantity
 		return b
 	}
@@ -33,7 +33,7 @@ func RequestMatchingFnc(itemName string, quantity int) func(args map[string]any)
 func StatusUpdateMatchingFnc(status OrderStatus) func(args map[string]any) bool {
 	return func(args map[string]any) bool {
 		if statusUpdated, exists := args["StatusUpdatedEvent"]; exists {
-			log.Printf("StubService methodCalled. %+v", args)
+			log.Printf("StubService methodCalled StatusUpdatedEvent(). %+v", args)
 			return statusUpdated == status
 		}
 		return false

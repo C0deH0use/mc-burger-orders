@@ -7,6 +7,7 @@ import (
 	cmd "mc-burger-orders/command"
 	i "mc-burger-orders/kitchen/item"
 	"mc-burger-orders/shelf"
+	"sync"
 	"testing"
 )
 
@@ -41,9 +42,13 @@ func Test_CreateNewOrder(t *testing.T) {
 		},
 	}
 
-	stubKitchenService := NewStubService()
-	stubStatusEmitter := NewStubService()
 	stubRepository := GivenRepository()
+	stubKitchenService := NewStubService()
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(2)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
@@ -83,6 +88,9 @@ func Test_CreateNewOrder(t *testing.T) {
 	assert.Empty(t, stubKitchenService.CalledCnt())
 
 	// and
+	statusUpdateWg.Wait()
+
+	t.Log("StatusUpdatedEvent Args:", stubStatusEmitter.MethodCalled)
 	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Ready)))
@@ -120,8 +128,16 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 		},
 	}
 
+	kitchenWg := &sync.WaitGroup{}
+	kitchenWg.Add(1)
 	stubKitchenService := NewStubService()
+	stubKitchenService.WithWaitGroup(kitchenWg)
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(2)
 	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
+
 	expectedOrder := &Order{
 		OrderNumber: expectedOrderNumber,
 		CustomerId:  10,
@@ -169,9 +185,13 @@ func Test_CreateNewOrderAndPackOnlyTheseItemsThatAreAvailable(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
+	kitchenWg.Wait()
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 1)))
 
 	// and
+	statusUpdateWg.Wait()
+	t.Log("StatusUpdatedEvent Args:", stubStatusEmitter.MethodCalled)
+
 	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 2)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(InProgress)))
@@ -195,9 +215,17 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 			},
 		},
 	}
-	stubKitchenService := NewStubService()
-	stubStatusEmitter := NewStubService()
 	stubRepository := GivenRepository()
+
+	kitchenWg := &sync.WaitGroup{}
+	kitchenWg.Add(2)
+	stubKitchenService := NewStubService()
+	stubKitchenService.WithWaitGroup(kitchenWg)
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(1)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
 
 	command := &NewRequestCommand{
 		Repository:     stubRepository,
@@ -234,10 +262,12 @@ func Test_DontPackItemsWhenNonIsInStack(t *testing.T) {
 	assert.Equal(t, 0, s.GetCurrent("hamburger"))
 
 	// and
+	kitchenWg.Wait()
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("hamburger", 2)))
 	assert.True(t, stubKitchenService.HaveBeenCalledWith(RequestMatchingFnc("fries", 1)))
 
 	// and
+	statusUpdateWg.Wait()
 	assert.Len(t, stubStatusEmitter.GetStatusUpdatedEventArgs(), 1)
 	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Requested)))
 	close(commandResults)

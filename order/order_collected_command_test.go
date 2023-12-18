@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mc-burger-orders/command"
 	"net/http"
+	"sync"
 	"testing"
 )
 
@@ -20,11 +21,15 @@ func TestOrderCollectedCommand_Execute(t *testing.T) {
 func shouldEmitStatusUpdateWhenClientCollectsReadyOrder(t *testing.T) {
 	// given
 	stubRepository := GivenRepository()
-	stubService := NewStubService()
+
+	statusUpdateWg := &sync.WaitGroup{}
+	statusUpdateWg.Add(1)
+	stubStatusEmitter := NewStubService()
+	stubStatusEmitter.WithWaitGroup(statusUpdateWg)
 
 	stubRepository.ReturnFetchByOrderNumber(&Order{OrderNumber: expectedOrderNumber, Status: Ready})
 
-	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubService}
+	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubStatusEmitter}
 	commandResults := make(chan command.TypedResult)
 
 	// when
@@ -39,17 +44,18 @@ func shouldEmitStatusUpdateWhenClientCollectsReadyOrder(t *testing.T) {
 	assert.Equal(t, Collected, upsertArgs[0].Status)
 
 	// and
-	assert.True(t, stubService.HaveBeenCalledWith(StatusUpdateMatchingFnc(Collected)))
+	statusUpdateWg.Wait()
+	assert.True(t, stubStatusEmitter.HaveBeenCalledWith(StatusUpdateMatchingFnc(Collected)))
 }
 
 func shouldNotEmitStatusUpdateWhenOrderIsNotYetReady(t *testing.T) {
 	// given
 	stubRepository := GivenRepository()
-	stubService := NewStubService()
+	stubStatusEmitter := NewStubService()
 
 	stubRepository.ReturnFetchByOrderNumber(&Order{OrderNumber: expectedOrderNumber, Status: InProgress})
 
-	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubService}
+	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubStatusEmitter}
 	commandResults := make(chan command.TypedResult)
 
 	// when
@@ -61,18 +67,18 @@ func shouldNotEmitStatusUpdateWhenOrderIsNotYetReady(t *testing.T) {
 	assert.Equal(t, "requested order is yet ready for collection", result.Error.ErrorMessage)
 	assert.Equal(t, http.StatusPreconditionRequired, result.Error.HttpResponse)
 
-	assert.Len(t, stubRepository.GetUpsertArgs(), 0)
-	assert.Equal(t, 0, stubService.CalledCnt())
+	assert.Empty(t, stubRepository.GetUpsertArgs())
+	assert.Empty(t, stubStatusEmitter.GetStatusUpdatedEventArgs())
 }
 
 func shouldNotEmitStatusUpdateWhenOrderByNumberDoesNotExists(t *testing.T) {
 	// given
 	stubRepository := GivenRepository()
-	stubService := NewStubService()
+	stubStatusEmitter := NewStubService()
 
 	stubRepository.ReturnError(fmt.Errorf("error fetching order"))
 
-	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubService}
+	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubStatusEmitter}
 	commandResults := make(chan command.TypedResult)
 
 	// when
@@ -84,18 +90,18 @@ func shouldNotEmitStatusUpdateWhenOrderByNumberDoesNotExists(t *testing.T) {
 	assert.Equal(t, "failed to find order by order number. Reason: error fetching order", result.Error.ErrorMessage)
 	assert.Equal(t, http.StatusNotFound, result.Error.HttpResponse)
 
-	assert.Len(t, stubRepository.GetUpsertArgs(), 0)
-	assert.Equal(t, 0, stubService.CalledCnt())
+	assert.Empty(t, stubRepository.GetUpsertArgs())
+	assert.Empty(t, stubStatusEmitter.GetStatusUpdatedEventArgs())
 }
 
 func shouldNotEmitStatusUpdateWhenOrderWasAlreadyCollected(t *testing.T) {
 	// given
 	stubRepository := GivenRepository()
-	stubService := NewStubService()
+	stubStatusEmitter := NewStubService()
 
 	stubRepository.ReturnFetchByOrderNumber(&Order{OrderNumber: expectedOrderNumber, Status: Collected})
 
-	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubService}
+	sut := &OrderCollectedCommand{OrderNumber: expectedOrderNumber, Repository: stubRepository, StatusEmitter: stubStatusEmitter}
 	commandResults := make(chan command.TypedResult)
 
 	// when
@@ -107,6 +113,6 @@ func shouldNotEmitStatusUpdateWhenOrderWasAlreadyCollected(t *testing.T) {
 	assert.Equal(t, "requested order already is collected", result.Error.ErrorMessage)
 	assert.Equal(t, http.StatusPreconditionFailed, result.Error.HttpResponse)
 
-	assert.Len(t, stubRepository.GetUpsertArgs(), 0)
-	assert.Equal(t, 0, stubService.CalledCnt())
+	assert.Empty(t, stubRepository.GetUpsertArgs())
+	assert.Empty(t, stubStatusEmitter.GetStatusUpdatedEventArgs())
 }

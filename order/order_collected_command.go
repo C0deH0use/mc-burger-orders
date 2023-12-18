@@ -44,7 +44,7 @@ func (o *OrderCollectedCommand) Execute(ctx context.Context, message kafka.Messa
 		commandResults <- command.NewHttpErrorResult("OrderCollectedCommand", errMessage, http.StatusInternalServerError)
 		return
 	}
-	o.StatusEmitter.EmitStatusUpdatedEvent(order)
+	go o.StatusEmitter.EmitStatusUpdatedEvent(*order)
 	commandResults <- command.NewSuccessfulResult("OrderCollectedCommand")
 }
 

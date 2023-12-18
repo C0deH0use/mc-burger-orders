@@ -73,7 +73,7 @@ func (r *OrderRepositoryImpl) InsertOrUpdate(ctx context.Context, order *Order) 
 		err = fmt.Errorf("missing order pk id for the document")
 		return nil, err
 	}
-	r.s.EmitUpdatedEvent(order)
+	r.s.EmitUpdatedEvent(*order)
 
 	var orderId primitive.ObjectID
 	switch {

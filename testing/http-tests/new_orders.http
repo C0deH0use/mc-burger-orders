@@ -115,12 +115,22 @@ Content-Type: application/json
     })
 %}
 
-
 ###
-#@name= Collect first order on ready
+#@name= Check if first order is ready
+POST localhost:9090/order/{{orderNumber1}}/collect
+Content-Type: application/json
+
+> {%
+    client.test(`Requested order ${client.global.get("orderNumber1")} is still not ready for collection`, () => {
+        client.assert(response.status === 428,
+            `Expected Response Status to be 428, but was ${response.status}`);
+    })
+%}
+
+### @name= Collect order {{orderNumber1}} on ready
 < {%
    import {wait} from "wait-for"
-   wait(10)
+   wait(30)
    client.log("Calling Collect on order one " + client.global.get("orderNumber1"))
 %}
 
@@ -128,8 +138,42 @@ POST localhost:9090/order/{{orderNumber1}}/collect
 Content-Type: application/json
 
 > {%
-    client.test("Request new order I", () => {
-        client.assert(response.status === 200,
-            `Expected Response Status to be 200, but was ${response.status}`);
+    client.test(`Requested order ${client.global.get("orderNumber1")} is ready for collection`, () => {
+        client.assert(response.status === 204,
+            `Expected Response Status to be 204, but was ${response.status}`);
+    })
+%}
+
+###
+#@name= Collect order {{orderNumber2}} on ready
+< {%
+   import {wait} from "wait-for"
+   wait(5)
+   client.log("Calling Collect on order one " + client.global.get("orderNumber2"))
+%}
+POST localhost:9090/order/{{orderNumber2}}/collect
+Content-Type: application/json
+
+> {%
+    client.test(`Requested order ${client.global.get("orderNumber2")} is ready for collection`, () => {
+        client.assert(response.status === 204,
+            `Expected Response Status to be 204, but was ${response.status}`);
+    })
+%}
+
+###
+#@name= Collect order {{orderNumber3}} on ready
+< {%
+   import {wait} from "wait-for"
+   wait(5)
+   client.log("Calling Collect on order one " + client.global.get("orderNumber3"))
+%}
+POST localhost:9090/order/{{orderNumber3}}/collect
+Content-Type: application/json
+
+> {%
+    client.test(`Requested order ${client.global.get("orderNumber3")} is ready for collection`, () => {
+        client.assert(response.status === 204,
+            `Expected Response Status to be 204, but was ${response.status}`);
     })
 %}

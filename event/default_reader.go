@@ -19,6 +19,7 @@ type DefaultReader struct {
 	*kafka.Reader
 	configuration *TopicConfigs
 	eventBus      EventBus
+	closed        bool
 	processRepeat map[string]int
 }
 
@@ -39,7 +40,7 @@ func NewTopicReader(configuration *TopicConfigs, eventBus EventBus) *DefaultRead
 		MaxWait:  configuration.WaitMaxTime,
 		GroupID:  groupID(configuration),
 	})
-	return &DefaultReader{reader, configuration, eventBus, make(map[string]int)}
+	return &DefaultReader{reader, configuration, eventBus, false, make(map[string]int)}
 }
 
 func (r *DefaultReader) GroupId() string {
@@ -55,12 +56,20 @@ func (r *DefaultReader) TopicName() string {
 }
 
 func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
+	r.closed = false
 	go func() {
-		log.Info.Println("Subscribing to topic", r.configuration.Topic)
-
+		log.Info.Println("Subscribing to topic:", r.TopicName(), "consumer group:", r.GroupId())
 		for {
-			r.ReadMessageFromTopic(context.Background(), msgChan)
-			time.Sleep(r.configuration.AwaitBetweenReadsTime)
+			select {
+			case <-time.After(r.configuration.AwaitBetweenReadsTime):
+				{
+					if r.closed {
+						return
+					}
+					log.Warning.Println("Reading messaged from topic:", r.TopicName(), "consumer group:", r.GroupId())
+					r.ReadMessageFromTopic(context.Background(), msgChan)
+				}
+			}
 		}
 	}()
 
@@ -73,8 +82,13 @@ func (r *DefaultReader) SubscribeToTopic(msgChan chan kafka.Message) {
 	}()
 }
 
-func (r *DefaultReader) Close() error {
-	return r.Reader.Close()
+func (r *DefaultReader) Close() {
+	log.Warning.Printf("Closing Subscription on topic %v | consumer group id: %v", r.configuration.Topic, r.GroupId())
+	r.closed = true
+	err := r.Reader.Close()
+	if err != nil {
+		log.Error.Println("Error when Closing Kafka Reader for messages from", r.GroupId(), err.Error())
+	}
 }
 
 func (r *DefaultReader) PublishEvent(message kafka.Message) {
@@ -84,10 +98,10 @@ func (r *DefaultReader) PublishEvent(message kafka.Message) {
 
 	for commandResult := range commandResults {
 		if commandResult.Error != nil {
-			log.Error.Println("While executing command", commandResult.Type, "following error occurred", commandResult.Error.Error())
+			log.Error.Printf("While executing command %v following error occurred %v", commandResult.Type, commandResult.Error.Error())
 			r.HandleError(commandResult.Error.Error(), message)
 		} else {
-			log.Info.Println("Command", commandResult.Type, "finished successfully, with result -", commandResult.Result)
+			log.Info.Printf("Command %v finished successfully, with result - %v", commandResult.Type, commandResult.Result)
 		}
 	}
 }
@@ -95,7 +109,13 @@ func (r *DefaultReader) PublishEvent(message kafka.Message) {
 func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan kafka.Message) {
 	msg, err := r.ReadMessage(ctx)
 	if err != nil {
-		log.Error.Println("failed to read message from topic:", r.configuration.Topic, "GroupID", r.GroupId(), err)
+		if err.Error() == "fetching message: EOF" {
+			if !r.closed {
+				r.Close()
+			}
+			return
+		}
+		log.Error.Printf("failed to read message from topic: %v, consumer group - %v. Error Reason: %v", r.configuration.Topic, r.GroupId(), err.Error())
 		return
 	}
 	eventType, err := utils.GetEventType(msg)
@@ -113,7 +133,7 @@ func (r *DefaultReader) ReadMessageFromTopic(ctx context.Context, msgChan chan k
 func (r *DefaultReader) HandleError(err error, message kafka.Message) {
 	key := string(message.Key)
 	topic := message.Topic
-	log.Error.Printf("failed to process message [%v] from topic: %v on event bus: %v\n", key, topic, err.Error())
+	log.Error.Printf("failed to process message [%v] from topic: %v on event bus: %v", key, topic, err.Error())
 
 	repeatCnt, ok := r.processRepeat[key]
 	if !ok {
@@ -122,16 +142,15 @@ func (r *DefaultReader) HandleError(err error, message kafka.Message) {
 
 	if repeatCnt < 4 {
 		// TODO: Error handling -> repeat message with delay
-		log.Error.Printf("Message [%v] is going to be send back to topic to be repeater in processing\n", key)
+		log.Error.Printf("Message [%v] is going to be send back to topic to be repeater in processing", key)
 		r.processRepeat[key] = repeatCnt + 1
 		return
 	}
 
 	if repeatCnt >= 4 {
-		log.Error.Printf("Message [%v] was already repeated %d. Going to be send message to dead-letter queue\n", key, repeatCnt)
+		log.Error.Printf("Message [%v] was already repeated %d. Going to be send message to dead-letter queue", key, repeatCnt)
 		return
 	}
 
-	// default error handling
 	log.Error.Println("default error handling when event could not be processed", err.Error())
 }

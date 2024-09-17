@@ -49,7 +49,7 @@ func (o *Order) PackItem(name string, quantity int) bool {
 	if newStatus != o.Status {
 		o.Status = newStatus
 		// Push Order Status Updated
-		log.Warning.Println("Order Status updated to:", o.Status)
+		log.Warning.Println("Order", o.OrderNumber, "| Status updated to:", o.Status)
 		return true
 	}
 	return false

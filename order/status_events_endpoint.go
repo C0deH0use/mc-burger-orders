@@ -7,12 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/mongo"
+	"io"
 	"mc-burger-orders/command"
 	"mc-burger-orders/event"
 	"mc-burger-orders/log"
 	"mc-burger-orders/middleware"
 	utils2 "mc-burger-orders/utils"
-	"time"
 )
 
 type StatusEventDto struct {
@@ -42,30 +42,31 @@ func (e *StatusEventsEndpoints) Setup(r *gin.Engine) {
 }
 
 func (e *StatusEventsEndpoints) orderStatusHandler(c *gin.Context) {
-	ctxWithTimeout, cancel := context.WithTimeout(c, time.Minute*3)
 	topicChan := make(chan kafka.Message)
 
+	_, _ = io.Copy(io.Discard, c.Request.Body)
 	go e.statusReader.SubscribeToTopic(topicChan)
 
+	go func() {
+		select {
+		case <-c.Request.Context().Done():
+			e.statusReader.Close()
+			close(topicChan)
+			return
+		}
+	}()
+
 	for eventMessage := range topicChan {
-		eventUpdatePayload, err := e.validateMessage(ctxWithTimeout, eventMessage)
+		eventUpdatePayload, err := e.validateMessage(c, eventMessage)
 		if err != nil {
-			log.Error.Println("Error when reading message from", e.statusReader.TopicName(), err.Error())
-			_ = e.statusReader.Close()
-			cancel()
+			log.Error.Println("Error when reading message from", e.statusReader.GroupId(), err.Error())
 			return
 		}
 		c.SSEvent("order-status", eventUpdatePayload)
 		c.Writer.Flush()
 	}
 
-	log.Warning.Println("Closed chan")
-
-	defer func() {
-		_ = e.statusReader.Close()
-		close(topicChan)
-		cancel()
-	}()
+	log.Info.Println("Finished order status", e.statusReader.GroupId())
 }
 
 func (e *StatusEventsEndpoints) validateMessage(ctx context.Context, message kafka.Message) (*StatusEventDto, error) {
